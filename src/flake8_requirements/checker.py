@@ -1,4 +1,5 @@
 import ast
+import re
 import sys
 from collections import namedtuple
 from itertools import chain
@@ -196,10 +197,39 @@ class Flake8Checker(object):
     name = "flake8-requires"
     version = __version__
 
+    # User defined project->modules mapping.
+    known_modules = {}
+
     def __init__(self, tree, filename, lines=None):
         """Initialize requirements checker."""
         self.setup = self.get_setup()
         self.tree = tree
+
+    @classmethod
+    def add_options(cls, manager):
+        """Register plug-in specific options."""
+        manager.add_option(
+            "--known-modules",
+            action='store',
+            parse_from_config=True,
+            default="",
+            help=(
+                "User defined mapping between a project name and a list of"
+                " provided modules. For example: ``--known-modules=project:"
+                "[Project],extra-project:[extras,utilities]``."
+            ),
+        )
+
+    @classmethod
+    def parse_options(cls, options):
+        """Parse plug-in specific options."""
+        cls.known_modules = {
+            project2module(k): v.split(",")
+            for k, v in [
+                x.split(":[")
+                for x in re.split(r"],?", options.known_modules)[:-1]
+            ]
+        }
 
     def get_setup(self):
         """Get package setup."""
@@ -223,15 +253,18 @@ class Flake8Checker(object):
         mods_3rd_party = set()
 
         # Get 1st party modules (used for absolute imports).
-        mods_1st_party.add(
-            split(project2module(self.setup.keywords['name'])),
-        )
+        modules = [project2module(self.setup.keywords.get('name', ""))]
+        if modules[0] in self.known_modules:
+            modules = self.known_modules[modules[0]]
+        mods_1st_party.update(split(x) for x in modules)
 
         # Get 3rd party module names based on requirements.
         for requirement in self.setup.get_requirements():
             modules = [project2module(requirement.project_name)]
             if modules[0] in KNOWN_3RD_PARTIES:
                 modules = KNOWN_3RD_PARTIES[modules[0]]
+            if modules[0] in self.known_modules:
+                modules = self.known_modules[modules[0]]
             mods_3rd_party.update(split(x) for x in modules)
 
         for node in ImportVisitor(self.tree).imports:
