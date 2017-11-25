@@ -7,11 +7,16 @@ from flake8_requirements import checker
 
 
 class SetupVisitorMock:
+    keywords = {
+        'name': "flake8-requires",
+    }
+
     def get_requirements(self):
         return parse_requirements((
             "foo",
             "bar",
             "hyp-hen",
+            "python-boom",
             "setuptools",
         ))
 
@@ -41,8 +46,16 @@ class Flake8CheckerTestCase(unittest.TestCase):
             "I900 'cprofile' not listed as a requirement",
         )
 
+    def test_1st_party(self):
+        errors = check("import flake8_requires")
+        self.assertEqual(len(errors), 0)
+
     def test_3rd_party(self):
         errors = check("import foo\nfrom bar import Bar")
+        self.assertEqual(len(errors), 0)
+
+    def test_3rd_party_python_prefix(self):
+        errors = check("from boom import blast")
         self.assertEqual(len(errors), 0)
 
     def test_3rd_party_missing(self):

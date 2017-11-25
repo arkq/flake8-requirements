@@ -24,6 +24,16 @@ if sys.version_info[0] == 3:
     STDLIB.update(STDLIB_PY3)
 
 
+def project2module(project):
+    """Convert project name into a module name."""
+    # Name unification in accordance with PEP 426.
+    project = project.lower().replace("-", "_")
+    if project.startswith("python_"):
+        # Remove conventional "python-" prefix.
+        project = project[7:]
+    return project
+
+
 class ImportVisitor(ast.NodeVisitor):
     """Import statement visitor."""
 
@@ -183,19 +193,28 @@ class Flake8Checker(object):
     def run(self):
         """Run checker."""
 
+        def split(module):
+            """Split module into submodules."""
+            return tuple(module.split("."))
+
         def modcmp(mod1=(), mod2=()):
             """Compare import modules."""
             return all(a == b for a, b in zip(mod1, mod2))
 
-        requirements = set()
+        mods_1st_party = set()
+        mods_3rd_party = set()
 
-        # Get module names based on requirements.
+        # Get 1st party modules (used for absolute imports).
+        mods_1st_party.add(
+            split(project2module(self.setup.keywords['name'])),
+        )
+
+        # Get 3rd party module names based on requirements.
         for requirement in self.setup.get_requirements():
-            project = requirement.project_name.lower()
-            modules = [project.replace("-", "_")]
-            if project in KNOWN_3RD_PARTIES:
-                modules = KNOWN_3RD_PARTIES[project]
-            requirements.update(tuple(x.split(".")) for x in modules)
+            modules = [project2module(requirement.project_name)]
+            if modules[0] in KNOWN_3RD_PARTIES:
+                modules = KNOWN_3RD_PARTIES[modules[0]]
+            mods_3rd_party.update(split(x) for x in modules)
 
         for node, module in ImportVisitor(self.tree).imports:
             _module = module.split(".")
