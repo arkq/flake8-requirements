@@ -137,11 +137,19 @@ class SetupVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
         # Setuptools setup() is a keywords only function.
-        if not (not node.args and (node.keywords or node.kwargs)):
+        if not (not node.args and
+                (node.keywords or getattr(node, 'kwargs', ()))):
             return
 
-        keywords = {x.arg for x in node.keywords}
-        if node.kwargs:
+        keywords = set()
+        for k in node.keywords:
+            if k.arg is not None:
+                keywords.add(k.arg)
+            # Simple case for dictionary expansion for Python >= 3.5.
+            if k.arg is None and isinstance(k.value, ast.Dict):
+                keywords.update(x.s for x in k.value.keys)
+        # Simple case for dictionary expansion for Python <= 3.4.
+        if getattr(node, 'kwargs', ()) and isinstance(node.kwargs, ast.Dict):
             keywords.update(x.s for x in node.kwargs.keys)
 
         if not keywords.issuperset(self.attributes['required']):
