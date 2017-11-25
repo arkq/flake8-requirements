@@ -18,6 +18,7 @@ class SetupVisitorMock:
             "hyp-hen",
             "python-boom",
             "setuptools",
+            "space.module",
         ))
 
 
@@ -82,7 +83,15 @@ class Flake8CheckerTestCase(unittest.TestCase):
             "I900 'cat' not listed as a requirement",
         )
 
-    def test_relative_import(self):
+    def test_namespace(self):
+        errors = check("import space.module")
+        self.assertEqual(len(errors), 0)
+        errors = check("from space import module")
+        self.assertEqual(len(errors), 0)
+        errors = check("import space")
+        self.assertEqual(len(errors), 1)
+
+    def test_relative(self):
         errors = check("from . import local")
         self.assertEqual(len(errors), 0)
         errors = check("from ..local import local")

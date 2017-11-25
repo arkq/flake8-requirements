@@ -1,5 +1,6 @@
 import ast
 import sys
+from collections import namedtuple
 from itertools import chain
 
 from pkg_resources import parse_requirements
@@ -37,19 +38,34 @@ def project2module(project):
 class ImportVisitor(ast.NodeVisitor):
     """Import statement visitor."""
 
+    # Convenience structure for storing import statement.
+    Import = namedtuple('Import', ('line', 'offset', 'mod', 'alt'))
+
     def __init__(self, tree):
         """Initialize import statement visitor."""
         self.imports = []
         self.visit(tree)
 
     def visit_Import(self, node):
-        self.imports.append((node, node.names[0].name))
+        self.imports.append(ImportVisitor.Import(
+            node.lineno,
+            node.col_offset,
+            node.names[0].name,
+            node.names[0].name,
+        ))
 
     def visit_ImportFrom(self, node):
         if node.level != 0:
             # Omit relative imports (local modules).
             return
-        self.imports.append((node, node.module))
+        self.imports.append(ImportVisitor.Import(
+            node.lineno,
+            node.col_offset,
+            node.module,
+            # Alternative module name which covers:
+            # > from namespace import module
+            ".".join((node.module, node.names[0].name)),
+        ))
 
 
 class SetupVisitor(ast.NodeVisitor):
@@ -197,9 +213,11 @@ class Flake8Checker(object):
             """Split module into submodules."""
             return tuple(module.split("."))
 
-        def modcmp(mod1=(), mod2=()):
+        def modcmp(lib=(), test=()):
             """Compare import modules."""
-            return all(a == b for a, b in zip(mod1, mod2))
+            if len(lib) > len(test):
+                return False
+            return all(a == b for a, b in zip(lib, test))
 
         mods_1st_party = set()
         mods_3rd_party = set()
@@ -216,15 +234,20 @@ class Flake8Checker(object):
                 modules = KNOWN_3RD_PARTIES[modules[0]]
             mods_3rd_party.update(split(x) for x in modules)
 
-        for node, module in ImportVisitor(self.tree).imports:
-            _module = module.split(".")
-            if any([_module[0] == x for x in STDLIB]):
+        for node in ImportVisitor(self.tree).imports:
+            _mod = split(node.mod)
+            _alt = split(node.alt)
+            if any([_mod[0] == x for x in STDLIB]):
                 continue
-            if any([modcmp(_module, x) for x in requirements]):
+            if any([modcmp(x, _mod) or modcmp(x, _alt)
+                    for x in mods_1st_party]):
+                continue
+            if any([modcmp(x, _mod) or modcmp(x, _alt)
+                    for x in mods_3rd_party]):
                 continue
             yield (
-                node.lineno,
-                node.col_offset,
-                ERRORS['I900'].format(pkg=module),
+                node.line,
+                node.offset,
+                ERRORS['I900'].format(pkg=node.mod),
                 Flake8Checker,
             )
