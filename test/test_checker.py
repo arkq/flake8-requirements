@@ -60,3 +60,17 @@ class Flake8CheckerTestCase(unittest.TestCase):
     def test_3rd_party_multi_module(self):
         errors = check("import pkg_resources")
         self.assertEqual(len(errors), 0)
+
+    def test_non_top_level_import(self):
+        errors = check("def function():\n import cat")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(
+            errors[0][2],
+            "I900 'cat' not listed as a requirement",
+        )
+
+    def test_relative_import(self):
+        errors = check("from . import local")
+        self.assertEqual(len(errors), 0)
+        errors = check("from ..local import local")
+        self.assertEqual(len(errors), 0)

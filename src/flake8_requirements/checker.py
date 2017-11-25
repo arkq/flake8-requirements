@@ -36,6 +36,9 @@ class ImportVisitor(ast.NodeVisitor):
         self.imports.append((node, node.names[0].name))
 
     def visit_ImportFrom(self, node):
+        if node.level != 0:
+            # Omit relative imports (local modules).
+            return
         self.imports.append((node, node.module))
 
 
