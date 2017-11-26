@@ -3,6 +3,8 @@ import re
 import sys
 from collections import namedtuple
 from itertools import chain
+from logging import getLogger
+from os import path
 
 from pkg_resources import parse_requirements
 
@@ -13,6 +15,8 @@ from .modules import STDLIB_PY3
 # NOTE: Changing this number will alter package version as well.
 __version__ = "1.0.0"
 __license__ = "MIT"
+
+LOG = getLogger('flake8.plugin.requires')
 
 ERRORS = {
     'I900': "I900 '{pkg}' not listed as a requirement",
@@ -147,7 +151,7 @@ class SetupVisitor(ast.NodeVisitor):
             {'__file__': "setup.py", '__f8r_setup': setup},
         )
 
-    def get_requirements(self, install=True, extras=True):
+    def get_requirements(self, install=True, extras=True, setup=False):
         """Get package requirements."""
         requires = []
         if install:
@@ -157,6 +161,10 @@ class SetupVisitor(ast.NodeVisitor):
         if extras:
             for r in self.keywords.get('extras_require', {}).values():
                 requires.extend(parse_requirements(r))
+        if setup:
+            requires.extend(parse_requirements(
+                self.keywords.get('setup_requires', ()),
+            ))
         return requires
 
     def visit_Call(self, node):
@@ -202,8 +210,9 @@ class Flake8Checker(object):
 
     def __init__(self, tree, filename, lines=None):
         """Initialize requirements checker."""
-        self.setup = self.get_setup()
         self.tree = tree
+        self.filename = filename
+        self.setup = self.get_setup()
 
     @classmethod
     def add_options(cls, manager):
@@ -231,10 +240,25 @@ class Flake8Checker(object):
             ]
         }
 
-    def get_setup(self):
+    @classmethod
+    def get_setup(cls):
         """Get package setup."""
-        with open("setup.py") as f:
-            return SetupVisitor(ast.parse(f.read()))
+        if not getattr(cls, '_setup', None):
+            try:
+                with open("setup.py") as f:
+                    cls._setup = SetupVisitor(ast.parse(f.read()))
+            except IOError as e:
+                LOG.warning("Couldn't open setup file: %s", e)
+                cls._setup = SetupVisitor(ast.parse(""))
+        return cls._setup
+
+    @property
+    def processing_setup_py(self):
+        """Determine whether we are processing setup.py file."""
+        try:
+            return path.samefile(self.filename, "setup.py")
+        except OSError:
+            return False
 
     def run(self):
         """Run checker."""
@@ -258,14 +282,26 @@ class Flake8Checker(object):
             modules = self.known_modules[modules[0]]
         mods_1st_party.update(split(x) for x in modules)
 
+        requirements = self.setup.get_requirements(
+            setup=self.processing_setup_py,
+        )
+
         # Get 3rd party module names based on requirements.
-        for requirement in self.setup.get_requirements():
+        for requirement in requirements:
             modules = [project2module(requirement.project_name)]
             if modules[0] in KNOWN_3RD_PARTIES:
                 modules = KNOWN_3RD_PARTIES[modules[0]]
             if modules[0] in self.known_modules:
                 modules = self.known_modules[modules[0]]
             mods_3rd_party.update(split(x) for x in modules)
+
+        # When processing setup.py file, forcefully add setuptools to the
+        # project requirements. Setuptools might be required to build the
+        # project, even though it is not listed as a requirement - this
+        # package is required to run setup.py, so listing it as a setup
+        # requirement would be pointless.
+        if self.processing_setup_py:
+            mods_3rd_party.add(split("setuptools"))
 
         for node in ImportVisitor(self.tree).imports:
             _mod = split(node.mod)

@@ -1,34 +1,38 @@
 import ast
 import unittest
 
-from pkg_resources import parse_requirements
-
 from flake8_requirements import checker
 
 
-class SetupVisitorMock:
-    keywords = {
-        'name': "flake8-requires",
-    }
+class SetupVisitorMock(checker.SetupVisitor):
 
-    def get_requirements(self):
-        return parse_requirements((
-            "foo",
-            "bar",
-            "hyp-hen",
-            "python-boom",
-            "setuptools",
-            "space.module",
-        ))
+    def __init__(self):
+        self.keywords = {
+            'name': "flake8-requires",
+            'install_requires': [
+                "foo",
+                "bar",
+                "hyp-hen",
+                "python-boom",
+                "pillow",
+                "space.module",
+            ],
+        }
 
 
 class Flake8Checker(checker.Flake8Checker):
-    def get_setup(self):
+
+    @classmethod
+    def get_setup(cls):
         return SetupVisitorMock()
 
+    @property
+    def processing_setup_py(self):
+        return self.filename == "setup.py"
 
-def check(code):
-    return list(Flake8Checker(ast.parse(code), "<unknown>").run())
+
+def check(code, filename="<unknown>"):
+    return list(Flake8Checker(ast.parse(code), filename).run())
 
 
 class Flake8CheckerTestCase(unittest.TestCase):
@@ -71,8 +75,8 @@ class Flake8CheckerTestCase(unittest.TestCase):
         errors = check("from hyp_hen import Hyphen")
         self.assertEqual(len(errors), 0)
 
-    def test_3rd_party_multi_module(self):
-        errors = check("import pkg_resources")
+    def test_3rd_party_known_module(self):
+        errors = check("import PIL")
         self.assertEqual(len(errors), 0)
 
     def test_non_top_level_import(self):
@@ -96,3 +100,13 @@ class Flake8CheckerTestCase(unittest.TestCase):
         self.assertEqual(len(errors), 0)
         errors = check("from ..local import local")
         self.assertEqual(len(errors), 0)
+
+    def test_setup_py(self):
+        errors = check("from setuptools import setup", "setup.py")
+        self.assertEqual(len(errors), 0)
+        errors = check("from setuptools import setup", "xxx.py")
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(
+            errors[0][2],
+            "I900 'setuptools' not listed as a requirement",
+        )
