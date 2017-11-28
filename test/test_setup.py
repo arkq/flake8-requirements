@@ -1,6 +1,5 @@
 import ast
 import unittest
-from itertools import chain
 
 from pkg_resources import parse_requirements
 
@@ -10,38 +9,40 @@ from flake8_requirements.checker import SetupVisitor
 class Flake8CheckerTestCase(unittest.TestCase):
 
     def test_detect_setup(self):
-        code = "setup(name='A', version='1', packages=[''])"
+        code = "setup({})".format(",".join((
+            "name='A'",
+            "version='1'",
+            "author='A'",
+            "packages=['']",
+            "url='URL'",
+        )))
         setup = SetupVisitor(ast.parse(code))
         self.assertEqual(setup.redirected, True)
         self.assertDictEqual(setup.keywords, {
             'name': 'A',
             'version': '1',
             'packages': [''],
+            'author': 'A',
+            'url': 'URL',
         })
 
         code = "setup({})".format(",".join(
             "{}='{}'".format(x, x)
-            for x in chain(*SetupVisitor.attributes.values())
+            for x in SetupVisitor.attributes
         ))
         setup = SetupVisitor(ast.parse(code))
         self.assertEqual(setup.redirected, True)
         self.assertDictEqual(setup.keywords, {
-            x: x for x in chain(*SetupVisitor.attributes.values())
+            x: x for x in SetupVisitor.attributes
         })
 
-        code = "setup(name='A', version='1')"
-        setup = SetupVisitor(ast.parse(code))
-        self.assertEqual(setup.redirected, False)
-
-        code = "setup(name='A', packages=[''])"
-        setup = SetupVisitor(ast.parse(code))
-        self.assertEqual(setup.redirected, False)
-
-        code = "setup('A', name='A', version='1', packages=[''])"
-        setup = SetupVisitor(ast.parse(code))
-        self.assertEqual(setup.redirected, False)
-
-        code = "setup(name='A', version='1', packages=[''], xxx=False)"
+        code = "setup({})".format(",".join((
+            "name='A'",
+            "version='1'",
+            "package='ABC'",
+            "processing=True",
+            "verbose=True",
+        )))
         setup = SetupVisitor(ast.parse(code))
         self.assertEqual(setup.redirected, False)
 

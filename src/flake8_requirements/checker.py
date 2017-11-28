@@ -2,7 +2,6 @@ import ast
 import re
 import sys
 from collections import namedtuple
-from itertools import chain
 from logging import getLogger
 from os import path
 
@@ -83,53 +82,49 @@ class SetupVisitor(ast.NodeVisitor):
 
     # Set of keywords used by the setup() function.
     attributes = {
-        'required': {
-            'name',
-            'version',
-        },
-        'one-of': {
-            'ext_modules',
-            'packages',
-            'py_modules',
-        },
-        'optional': {
-            'author',
-            'author_email',
-            'classifiers',
-            'cmdclass',
-            'configuration',
-            'convert_2to3_doctests',
-            'dependency_links',
-            'description',
-            'download_url',
-            'eager_resources',
-            'entry_points',
-            'exclude_package_data',
-            'extras_require',
-            'features',
-            'include_package_data',
-            'install_requires',
-            'keywords',
-            'license',
-            'long_description',
-            'maintainer',
-            'maintainer_email',
-            'message_extractors',
-            'namespace_packages',
-            'package_data',
-            'package_dir',
-            'platforms',
-            'python_requires',
-            'scripts',
-            'setup_requires',
-            'test_loader',
-            'test_suite',
-            'tests_require',
-            'url',
-            'use_2to3',
-            'use_2to3_fixers',
-            'zip_safe',
-        },
+        # Attributes present in almost every setup(), however
+        # due to very generic name the score is not very high.
+        'name': 0.7,
+        'version': 0.7,
+        # One of these attributes is present in every setup(),
+        # scoring depends on the name uniqueness.
+        'ext_modules': 1.0,
+        'packages': 0.8,
+        'py_modules': 1.0,
+        # Mostly used (hence listed here) optional attributes.
+        'author': 0.5,
+        'author_email': 0.6,
+        'classifiers': 0.6,
+        'cmdclass': 0.6,
+        'convert_2to3_doctests': 1.0,
+        'dependency_links': 0.7,
+        'description': 0.5,
+        'download_url': 0.5,
+        'eager_resources': 0.7,
+        'entry_points': 0.7,
+        'exclude_package_data': 0.9,
+        'extras_require': 0.7,
+        'include_package_data': 0.9,
+        'install_requires': 0.7,
+        'keywords': 0.5,
+        'license': 0.5,
+        'long_description': 0.5,
+        'maintainer': 0.5,
+        'maintainer_email': 0.6,
+        'namespace_packages': 0.6,
+        'package_data': 0.6,
+        'package_dir': 0.6,
+        'platforms': 0.5,
+        'python_requires': 0.7,
+        'scripts': 0.5,
+        'setup_requires': 0.7,
+        'test_loader': 0.6,
+        'test_suite': 0.6,
+        'tests_require': 0.7,
+        'url': 0.5,
+        'use_2to3': 0.9,
+        'use_2to3_fixers': 1.0,
+        'zip_safe': 0.6,
     }
 
     def __init__(self, tree):
@@ -171,9 +166,8 @@ class SetupVisitor(ast.NodeVisitor):
         """Call visitor - used for finding setup() call."""
         self.generic_visit(node)
 
-        # Setuptools setup() is a keywords only function.
-        if not (not node.args and
-                (node.keywords or getattr(node, 'kwargs', ()))):
+        # Setup() is a keywords-only function.
+        if node.args:
             return
 
         keywords = set()
@@ -187,11 +181,21 @@ class SetupVisitor(ast.NodeVisitor):
         if getattr(node, 'kwargs', ()) and isinstance(node.kwargs, ast.Dict):
             keywords.update(x.s for x in node.kwargs.keys)
 
-        if not keywords.issuperset(self.attributes['required']):
+        # The bare minimum number of arguments seems to be around five, which
+        # includes author, name, version, module/package and something extra.
+        if len(keywords) < 5:
             return
-        if not keywords.intersection(self.attributes['one-of']):
-            return
-        if not keywords.issubset(chain(*self.attributes.values())):
+
+        score = sum(
+            self.attributes.get(x, 0)
+            for x in keywords
+        ) / len(keywords)
+
+        if score < 0.5:
+            LOG.debug(
+                "Scoring for setup%r below 0.5: %.2f",
+                tuple(keywords),
+                score)
             return
 
         # Redirect call to our setup() tap function.
