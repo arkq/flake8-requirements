@@ -1,9 +1,9 @@
 import ast
+import os
 import re
 import sys
 from collections import namedtuple
 from logging import getLogger
-from os import path
 
 from pkg_resources import parse_requirements
 
@@ -139,12 +139,32 @@ class SetupVisitor(ast.NodeVisitor):
             return
 
         def setup(**kw):
+            """Setup() arguments hijacking."""
             self.keywords = kw
 
-        eval(
-            compile(ast.fix_missing_locations(tree), "<str>", mode='exec'),
-            {'__file__': "setup.py", '__f8r_setup': setup},
-        )
+        # XXX: If evaluated script (setup.py) depends on local modules we
+        #      have to add its root directory to the import search path.
+        #      Note however, that this hack might break further imports
+        #      for OUR Python instance (we're changing our own sys.path)!
+        sys.path.insert(0, os.getcwd())
+
+        try:
+            tree = ast.fix_missing_locations(tree)
+            eval(compile(tree, "<str>", mode='exec'), {
+                '__name__': "__main__",
+                '__file__': "setup.py",
+                '__f8r_setup': setup,
+            })
+        except Exception as e:
+            # XXX: Exception during setup.py evaluation might not necessary
+            #      mean "fatal error". This exception might occur if e.g.
+            #      we have hijacked local setup() function (due to matching
+            #      heuristic for function arguments). Anyway, we shall not
+            #      break flake8 execution due to out eval() usage.
+            LOG.exception("Couldn't evaluate setup.py: %s", e)
+
+        # Restore import search path.
+        sys.path.pop(0)
 
     def get_requirements(self, install=True, extras=True, setup=False):
         """Get package requirements."""
@@ -216,6 +236,7 @@ class Flake8Checker(object):
         """Initialize requirements checker."""
         self.tree = tree
         self.filename = filename
+        self.lines = lines
         self.setup = self.get_setup()
 
     @classmethod
@@ -260,7 +281,7 @@ class Flake8Checker(object):
     def processing_setup_py(self):
         """Determine whether we are processing setup.py file."""
         try:
-            return path.samefile(self.filename, "setup.py")
+            return os.path.samefile(self.filename, "setup.py")
         except OSError:
             return False
 
