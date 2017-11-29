@@ -166,7 +166,8 @@ class SetupVisitor(ast.NodeVisitor):
         # Restore import search path.
         sys.path.pop(0)
 
-    def get_requirements(self, install=True, extras=True, setup=False):
+    def get_requirements(
+            self, install=True, extras=True, setup=False, tests=False):
         """Get package requirements."""
         requires = []
         if install:
@@ -179,6 +180,10 @@ class SetupVisitor(ast.NodeVisitor):
         if setup:
             requires.extend(parse_requirements(
                 self.keywords.get('setup_requires', ()),
+            ))
+        if tests:
+            requires.extend(parse_requirements(
+                self.keywords.get('tests_require', ()),
             ))
         return requires
 
@@ -309,6 +314,7 @@ class Flake8Checker(object):
 
         requirements = self.setup.get_requirements(
             setup=self.processing_setup_py,
+            tests=True,
         )
 
         # Get 3rd party module names based on requirements.
