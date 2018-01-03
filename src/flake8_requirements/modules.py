@@ -492,6 +492,7 @@ STDLIB_PY3 = (
 # or the name of the module is different than the project name itself.
 KNOWN_3RD_PARTIES = {
     "awesome_slugify": ["slugify"],
+    "cx_oracle": ["cx_Oracle"],
     "enum34": ["enum"],
     "pillow": ["PIL"],
     "py_lru_cache": ["lru"],
