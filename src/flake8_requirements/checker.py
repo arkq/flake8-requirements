@@ -3,6 +3,7 @@ import os
 import re
 import sys
 from collections import namedtuple
+from functools import wraps
 from logging import getLogger
 
 from pkg_resources import parse_requirements
@@ -27,6 +28,19 @@ if sys.version_info[0] == 2:
     STDLIB.update(STDLIB_PY2)
 if sys.version_info[0] == 3:
     STDLIB.update(STDLIB_PY3)
+
+
+def memoize(f):
+    """Cache value returned by the function."""
+    @wraps(f)
+    def w(*args, **kw):
+        memoize.mem[f] = v = f(*args, **kw)
+        return v
+    return w
+
+
+# Initialize cache memory block.
+memoize.mem = {}
 
 
 def project2module(project):
@@ -271,16 +285,15 @@ class Flake8Checker(object):
         }
 
     @classmethod
+    @memoize
     def get_setup(cls):
         """Get package setup."""
-        if not getattr(cls, '_setup', None):
-            try:
-                with open("setup.py") as f:
-                    cls._setup = SetupVisitor(ast.parse(f.read()))
-            except IOError as e:
-                LOG.warning("Couldn't open setup file: %s", e)
-                cls._setup = SetupVisitor(ast.parse(""))
-        return cls._setup
+        try:
+            with open("setup.py") as f:
+                return SetupVisitor(ast.parse(f.read()))
+        except IOError as e:
+            LOG.warning("Couldn't open setup file: %s", e)
+            return SetupVisitor(ast.parse(""))
 
     @property
     def processing_setup_py(self):
