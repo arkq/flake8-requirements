@@ -13,7 +13,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requires')
@@ -256,6 +256,7 @@ class Flake8Checker(object):
         self.tree = tree
         self.filename = filename
         self.lines = lines
+        self.requirements = self.get_requirements()
         self.setup = self.get_setup()
 
     @classmethod
@@ -283,6 +284,17 @@ class Flake8Checker(object):
                 for x in re.split(r"],?", options.known_modules)[:-1]
             ]
         }
+
+    @classmethod
+    @memoize
+    def get_requirements(cls):
+        """Get package requirements."""
+        try:
+            with open("requirements.txt") as f:
+                return tuple(parse_requirements(f.readlines()))
+        except IOError as e:
+            LOG.debug("Couldn't open requirements file: %s", e)
+            return ()
 
     @classmethod
     @memoize
@@ -325,10 +337,13 @@ class Flake8Checker(object):
             modules = self.known_modules[modules[0]]
         mods_1st_party.update(split(x) for x in modules)
 
-        requirements = self.setup.get_requirements(
-            setup=self.processing_setup_py,
-            tests=True,
-        )
+        requirements = self.requirements
+        if self.setup.redirected:
+            # Use requirements from setup if available.
+            requirements = self.setup.get_requirements(
+                setup=self.processing_setup_py,
+                tests=True,
+            )
 
         # Get 3rd party module names based on requirements.
         for requirement in requirements:

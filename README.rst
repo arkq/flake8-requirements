@@ -14,7 +14,8 @@ Important notice
 
 In order to collect project's dependencies, this checker evaluates Python code from the
 ``setup.py`` file stored in the project's root directory. Code evaluation is done with the
-`eval() <https://docs.python.org/3/library/functions.html#eval>`_ function.
+`eval() <https://docs.python.org/3/library/functions.html#eval>`_ function. As a fall-back
+method, this checker also tries to load dependencies from the ``requirements.txt`` file.
 
 At this point it is very important to be aware of the consequences of the above approach. One
 might inject malicious code into the ``setup.py`` file, which will be executed by this checker.

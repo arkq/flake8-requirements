@@ -7,6 +7,7 @@ from flake8_requirements import checker
 class SetupVisitorMock(checker.SetupVisitor):
 
     def __init__(self):
+        self.redirected = True
         self.keywords = {
             'name': "flake8-requires",
             'install_requires': [
