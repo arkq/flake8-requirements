@@ -27,7 +27,7 @@ setup(
     package_dir={'': "src"},
     packages=["flake8_requirements"],
     install_requires=[
-        "flake8 > 2.0.0",
+        "flake8 >= 2.0.0",
         "setuptools",
     ],
     setup_requires=["pytest-runner"],

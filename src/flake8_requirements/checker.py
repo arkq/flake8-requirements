@@ -6,6 +6,7 @@ from collections import namedtuple
 from functools import wraps
 from logging import getLogger
 
+import flake8
 from pkg_resources import parse_requirements
 
 from .modules import KNOWN_3RD_PARTIES
@@ -13,7 +14,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requires')
@@ -262,16 +263,19 @@ class Flake8Checker(object):
     @classmethod
     def add_options(cls, manager):
         """Register plug-in specific options."""
+        kw = {}
+        if flake8.__version__ >= '3.0.0':
+            kw['parse_from_config'] = True
         manager.add_option(
             "--known-modules",
             action='store',
-            parse_from_config=True,
             default="",
             help=(
                 "User defined mapping between a project name and a list of"
                 " provided modules. For example: ``--known-modules=project:"
                 "[Project],extra-project:[extras,utilities]``."
             ),
+            **kw
         )
 
     @classmethod
