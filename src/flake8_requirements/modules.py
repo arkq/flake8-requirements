@@ -494,6 +494,7 @@ KNOWN_3RD_PARTIES = {
     "awesome_slugify": ["slugify"],
     "cx_oracle": ["cx_Oracle"],
     "enum34": ["enum"],
+    "google_api_python_client": ["apiclient", "googleapiclient"],
     "mysql_python": ["MySQLdb"],
     "mysqlclient": ["_mysql", "MySQLdb"],
     "pillow": ["PIL"],
