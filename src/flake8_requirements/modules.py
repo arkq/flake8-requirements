@@ -492,6 +492,7 @@ STDLIB_PY3 = (
 # or the name of the module is different than the project name itself.
 KNOWN_3RD_PARTIES = {
     "awesome_slugify": ["slugify"],
+    "beautifulsoup4": ["bs4"]
     "cx_oracle": ["cx_Oracle"],
     "enum34": ["enum"],
     "factory_boy": ["factory"],
@@ -503,6 +504,7 @@ KNOWN_3RD_PARTIES = {
     "pyicu": ["icu"],
     "pyjwt": ["jwt"],
     "pyopenssl": ["OpenSSL"],
+    "python-dateutil": ["dateutil"],
     "pyyaml": ["yaml"],
     "setuptools": ["pkg_resources", "setuptools"],
     "splunk_sdk": ["splunklib"],
