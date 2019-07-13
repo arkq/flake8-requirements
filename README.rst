@@ -37,3 +37,26 @@ You can install, upgrade, or uninstall ``flake8-requirements`` with these comman
   $ pip install flake8-requirements
   $ pip install --upgrade flake8-requirements
   $ pip uninstall flake8-requirements
+
+Customization
+-------------
+
+For projects with custom (private) dependencies, one can provide mapping between project name and
+provided modules. Such a mapping can be set on the command line during the flake8 invocation with
+the ``--known-modules`` option or alternatively in the ``[flake8]`` section of the configuration
+file, e.g. ``setup.cfg``. The syntax of the custom mapping looks like follows::
+
+  1st-project-name:[module1,module2,...],2nd-project-name:[moduleA,moduleB,...],...
+
+If some local project lacks "name" attribute in the ``setup.py`` file (it is highly discouraged
+not to provide the "name" attribute, though), one can omit the project name in the mapping and do
+as follows::
+
+  :[localmodule1,localmodule2,...],1st-local-library:[moduleA,moduleB,...],...
+
+Real life example::
+
+  $ cat setup.cfg
+  [flake8]
+  max-line-length = 100
+  known-modules = my-lib:[mylib.drm,mylib.encryption]
