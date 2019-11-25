@@ -253,7 +253,7 @@ class Flake8Checker(object):
     known_modules = {}
 
     # max depth to resolve recursive requirements
-    requirements_max_depth = 0
+    requirements_max_depth = 1
 
     def __init__(self, tree, filename, lines=None):
         """Initialize requirements checker."""
@@ -283,10 +283,10 @@ class Flake8Checker(object):
         manager.add_option(
             "--requirements-max-depth",
             type="int",
-            default=0,
+            default=1,
             help=(
-                "Max depth to resolve recursive requirements. Defaults to 0 "
-                "(no recursion allowed)."
+                "Max depth to resolve recursive requirements. Defaults to 1 "
+                "(one level of recursion allowed)."
             ),
             **kw
         )
@@ -317,7 +317,9 @@ class Flake8Checker(object):
     @classmethod
     def resolve_requirement(cls, requirement, max_depth=0):
         """Resolves flags like -r in an individual requirement line."""
-        if requirement.startswith("#") or not requirement.strip():
+        requirement = requirement.strip()
+
+        if requirement.startswith("#") or not requirement:
             return []
 
         if requirement.startswith("-r "):
@@ -326,12 +328,12 @@ class Flake8Checker(object):
                 msg = "Cannot resolve {}: beyond max depth"
                 raise RecursionError(msg.format(requirement.strip()))
 
-            path = requirement[3:].strip()
-            depth = max_depth - 1
             resolved = []
             # error out if requirements file cannot be opened
-            for line in open(path).readlines():
-                resolved.extend(cls.resolve_requirement(line, depth))
+            with open(requirement[3:].lstrip()) as f:
+                for line in f.readlines():
+                    resolved.extend(cls.resolve_requirement(
+                        line, max_depth - 1))
             return resolved
 
         return [requirement]

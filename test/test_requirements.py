@@ -39,7 +39,7 @@ class RequirementsTestCase(TestCase):
         with patch("builtins.open", mock_open(read_data=content)):
             self.assertEqual(
                 Flake8Checker.resolve_requirement("-r requirements.txt", 1),
-                ["foo >= 1.0.0\n", "bar <= 1.0.0\n"],
+                ["foo >= 1.0.0", "bar <= 1.0.0"],
             )
 
     def test_resolve_requirement_with_file_recursion_beyond_max_depth(self):
@@ -60,7 +60,7 @@ class RequirementsTestCase(TestCase):
 
             self.assertEqual(
                 Flake8Checker.resolve_requirement("-r requirements.txt", 2),
-                ["foo >= 1.0.0\n", "baz\n", "qux\n", "bar <= 1.0.0\n"],
+                ["foo >= 1.0.0", "baz", "qux", "bar <= 1.0.0"],
             )
 
     def test_init_with_no_requirements(self):
@@ -105,7 +105,11 @@ class RequirementsTestCase(TestCase):
                 )
 
                 with self.assertRaises(RecursionError):
-                    Flake8Checker(None, None)
+                    try:
+                        Flake8Checker.requirements_max_depth = 0
+                        Flake8Checker(None, None)
+                    finally:
+                        Flake8Checker.requirements_max_depth = 1
 
     def test_init_with_recursive_requirements(self):
         requirements_content = "foo >= 1.0.0\n-r inner.txt\nbar <= 1.0.0\n"
@@ -120,11 +124,7 @@ class RequirementsTestCase(TestCase):
                     mock_open(read_data=setup_content).return_value,
                 )
 
-                try:
-                    Flake8Checker.requirements_max_depth = 1
-                    checker = Flake8Checker(None, None)
-                finally:
-                    Flake8Checker.requirements_max_depth = 0
+                checker = Flake8Checker(None, None)
                 self.assertEqual(
                     sorted(checker.requirements, key=lambda x: x.project_name),
                     sorted(parse_requirements([
