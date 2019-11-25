@@ -60,3 +60,6 @@ Real life example::
   [flake8]
   max-line-length = 100
   known-modules = my-lib:[mylib.drm,mylib.encryption]
+
+If you use the ``-r`` flag in your ``requirements.txt`` file, add the ``--requirements-max-depth``
+option to flake8 (for example, ``--requirements-max-depth=1`` to allow one level of recursion).

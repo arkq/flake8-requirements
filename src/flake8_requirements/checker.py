@@ -252,6 +252,9 @@ class Flake8Checker(object):
     # User defined project->modules mapping.
     known_modules = {}
 
+    # max depth to resolve recursive requirements
+    requirements_max_depth = 0
+
     def __init__(self, tree, filename, lines=None):
         """Initialize requirements checker."""
         self.tree = tree
@@ -277,6 +280,16 @@ class Flake8Checker(object):
             ),
             **kw
         )
+        manager.add_option(
+            "--requirements-max-depth",
+            type="int",
+            default=0,
+            help=(
+                "Max depth to resolve recursive requirements. Defaults to 0 "
+                "(no recursion allowed)."
+            ),
+            **kw
+        )
 
     @classmethod
     def parse_options(cls, options):
@@ -288,17 +301,40 @@ class Flake8Checker(object):
                 for x in re.split(r"],?", options.known_modules)[:-1]
             ]
         }
+        cls.requirements_max_depth = options.requirements_max_depth
 
     @classmethod
     @memoize
     def get_requirements(cls):
         """Get package requirements."""
-        try:
-            with open("requirements.txt") as f:
-                return tuple(parse_requirements(f.readlines()))
-        except IOError as e:
-            LOG.debug("Couldn't open requirements file: %s", e)
+        if not os.path.exists("requirements.txt"):
+            LOG.debug("No requirements.txt file")
             return ()
+
+        return tuple(parse_requirements(cls.resolve_requirement(
+            "-r requirements.txt", cls.requirements_max_depth + 1)))
+
+    @classmethod
+    def resolve_requirement(cls, requirement, max_depth=0):
+        """Resolves flags like -r in an individual requirement line."""
+        if requirement.startswith("#") or not requirement.strip():
+            return []
+
+        if requirement.startswith("-r "):
+            # error out if we need to recurse deeper than allowed
+            if max_depth <= 0:
+                msg = "Cannot resolve {}: beyond max depth"
+                raise RecursionError(msg.format(requirement.strip()))
+
+            path = requirement[3:].strip()
+            depth = max_depth - 1
+            resolved = []
+            # error out if requirements file cannot be opened
+            for line in open(path).readlines():
+                resolved.extend(cls.resolve_requirement(line, depth))
+            return resolved
+
+        return [requirement]
 
     @classmethod
     @memoize
