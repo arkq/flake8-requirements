@@ -14,7 +14,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.1.2"
+__version__ = "1.2.0"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -252,6 +252,9 @@ class Flake8Checker(object):
     # User defined project->modules mapping.
     known_modules = {}
 
+    # max depth to resolve recursive requirements
+    requirements_max_depth = 1
+
     def __init__(self, tree, filename, lines=None):
         """Initialize requirements checker."""
         self.tree = tree
@@ -277,6 +280,16 @@ class Flake8Checker(object):
             ),
             **kw
         )
+        manager.add_option(
+            "--requirements-max-depth",
+            type="int",
+            default=1,
+            help=(
+                "Max depth to resolve recursive requirements. Defaults to 1 "
+                "(one level of recursion allowed)."
+            ),
+            **kw
+        )
 
     @classmethod
     def parse_options(cls, options):
@@ -288,17 +301,41 @@ class Flake8Checker(object):
                 for x in re.split(r"],?", options.known_modules)[:-1]
             ]
         }
+        cls.requirements_max_depth = options.requirements_max_depth
 
     @classmethod
     @memoize
     def get_requirements(cls):
         """Get package requirements."""
-        try:
-            with open("requirements.txt") as f:
-                return tuple(parse_requirements(f.readlines()))
-        except IOError as e:
-            LOG.debug("Couldn't open requirements file: %s", e)
+        if not os.path.exists("requirements.txt"):
+            LOG.debug("No requirements.txt file")
             return ()
+        return tuple(parse_requirements(cls.resolve_requirement(
+            "-r requirements.txt", cls.requirements_max_depth + 1)))
+
+    @classmethod
+    def resolve_requirement(cls, requirement, max_depth=0):
+        """Resolves flags like -r in an individual requirement line."""
+        requirement = requirement.strip()
+
+        if requirement.startswith("#") or not requirement:
+            return []
+
+        if requirement.startswith("-r "):
+            # Error out if we need to recurse deeper than allowed.
+            if max_depth <= 0:
+                msg = "Cannot resolve {}: beyond max depth"
+                raise RuntimeError(msg.format(requirement.strip()))
+
+            resolved = []
+            # Error out if requirements file cannot be opened.
+            with open(requirement[3:].lstrip()) as f:
+                for line in f.readlines():
+                    resolved.extend(cls.resolve_requirement(
+                        line, max_depth - 1))
+            return resolved
+
+        return [requirement]
 
     @classmethod
     @memoize

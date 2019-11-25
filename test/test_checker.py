@@ -105,6 +105,7 @@ class Flake8CheckerTestCase(unittest.TestCase):
     def test_custom_mapping_parser(self):
         class Flake8Options:
             known_modules = ":[pydrmcodec],mylib:[mylib.drm,mylib.ex]"
+            requirements_max_depth = 0
         Flake8Checker.parse_options(Flake8Options)
         self.assertEqual(
             Flake8Checker.known_modules,
@@ -114,6 +115,7 @@ class Flake8CheckerTestCase(unittest.TestCase):
     def test_custom_mapping(self):
         class Flake8Options:
             known_modules = "flake8-requires:[flake8req]"
+            requirements_max_depth = 0
         Flake8Checker.parse_options(Flake8Options)
         errors = check("from flake8req import mymodule")
         self.assertEqual(len(errors), 0)

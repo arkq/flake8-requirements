@@ -31,7 +31,7 @@ setup(
         "setuptools",
     ],
     setup_requires=["pytest-runner"],
-    tests_require=["pytest"],
+    tests_require=["mock", "pytest"],
     entry_points={
         'flake8.extension': [
             'I90 = flake8_requirements:Flake8Checker',
