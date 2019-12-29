@@ -32,7 +32,13 @@ class Flake8Checker(checker.Flake8Checker):
         return self.filename == "setup.py"
 
 
-def check(code, filename="<unknown>"):
+def check(code, filename="<unknown>", options=None):
+    class Flake8Options:
+        known_modules = ""
+        requirements_max_depth = 0
+    if options is None:
+        options = Flake8Options
+    Flake8Checker.parse_options(options)
     return list(Flake8Checker(ast.parse(code), filename).run())
 
 
@@ -116,13 +122,13 @@ class Flake8CheckerTestCase(unittest.TestCase):
         class Flake8Options:
             known_modules = "flake8-requires:[flake8req]"
             requirements_max_depth = 0
-        Flake8Checker.parse_options(Flake8Options)
-        errors = check("from flake8req import mymodule")
+        errors = check("from flake8req import mymodule", options=Flake8Options)
         self.assertEqual(len(errors), 0)
 
     def test_setup_py(self):
         errors = check("from setuptools import setup", "setup.py")
         self.assertEqual(len(errors), 0)
+        # mods_3rd_party
         errors = check("from setuptools import setup", "xxx.py")
         self.assertEqual(len(errors), 1)
         self.assertEqual(
