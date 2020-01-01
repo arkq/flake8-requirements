@@ -3,6 +3,7 @@ from unittest import TestCase
 from pkg_resources import parse_requirements
 
 from flake8_requirements.checker import Flake8Checker
+from flake8_requirements.checker import memoize
 
 try:
     from unittest import mock
@@ -72,26 +73,29 @@ class RequirementsTestCase(TestCase):
 
     def test_init_with_no_requirements(self):
         with mock.patch("os.path.exists", return_value=False) as exists:
-            with mock.patch(builtins_open, mock.mock_open()) as m:
-                checker = Flake8Checker(None, None)
-                self.assertEqual(checker.requirements, ())
-                m.assert_called_once_with("setup.py")
+            memoize.mem = {}
+            checker = Flake8Checker(None, None)
+            requirements = checker.get_requirements()
+            self.assertEqual(requirements, ())
             exists.assert_called_once_with("requirements.txt")
 
     def test_init_with_simple_requirements(self):
-        requirements_content = "foo >= 1.0.0\nbar <= 1.0.0\n"
+        content = "foo >= 1.0.0\nbar <= 1.0.0\n"
         setup_content = ""
 
         with mock.patch("os.path.exists", return_value=True):
             with mock.patch(builtins_open, mock.mock_open()) as m:
                 m.side_effect = (
-                    mock.mock_open(read_data=requirements_content).return_value,
+                    mock.mock_open(read_data=content).return_value,
                     mock.mock_open(read_data=setup_content).return_value,
                 )
 
+                memoize.mem = {}
                 checker = Flake8Checker(None, None)
+                requirements = checker.get_requirements()
+
                 self.assertEqual(
-                    sorted(checker.requirements, key=lambda x: x.project_name),
+                    sorted(requirements, key=lambda x: x.project_name),
                     sorted(parse_requirements([
                         "foo >= 1.0.0",
                         "bar <= 1.0.0",
@@ -99,41 +103,45 @@ class RequirementsTestCase(TestCase):
                 )
 
     def test_init_with_recursive_requirements_beyond_max_depth(self):
-        requirements_content = "foo >= 1.0.0\n-r inner.txt\nbar <= 1.0.0\n"
+        content = "foo >= 1.0.0\n-r inner.txt\nbar <= 1.0.0\n"
         inner_content = "# inner\nbaz\n\nqux\n"
         setup_content = ""
 
         with mock.patch("os.path.exists", return_value=True):
             with mock.patch(builtins_open, mock.mock_open()) as m:
                 m.side_effect = (
-                    mock.mock_open(read_data=requirements_content).return_value,
+                    mock.mock_open(read_data=content).return_value,
                     mock.mock_open(read_data=inner_content).return_value,
                     mock.mock_open(read_data=setup_content).return_value,
                 )
 
                 with self.assertRaises(RuntimeError):
                     try:
+                        memoize.mem = {}
                         Flake8Checker.requirements_max_depth = 0
                         Flake8Checker(None, None)
                     finally:
                         Flake8Checker.requirements_max_depth = 1
 
     def test_init_with_recursive_requirements(self):
-        requirements_content = "foo >= 1.0.0\n-r inner.txt\nbar <= 1.0.0\n"
+        content = "foo >= 1.0.0\n-r inner.txt\nbar <= 1.0.0\n"
         inner_content = "# inner\nbaz\n\nqux\n"
         setup_content = ""
 
         with mock.patch("os.path.exists", return_value=True):
             with mock.patch(builtins_open, mock.mock_open()) as m:
                 m.side_effect = (
-                    mock.mock_open(read_data=requirements_content).return_value,
+                    mock.mock_open(read_data=content).return_value,
                     mock.mock_open(read_data=inner_content).return_value,
                     mock.mock_open(read_data=setup_content).return_value,
                 )
 
+                memoize.mem = {}
                 checker = Flake8Checker(None, None)
+                requirements = checker.get_requirements()
+
                 self.assertEqual(
-                    sorted(checker.requirements, key=lambda x: x.project_name),
+                    sorted(requirements, key=lambda x: x.project_name),
                     sorted(parse_requirements([
                         "foo >= 1.0.0",
                         "baz",

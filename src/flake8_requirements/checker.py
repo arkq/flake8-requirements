@@ -35,8 +35,9 @@ def memoize(f):
     """Cache value returned by the function."""
     @wraps(f)
     def w(*args, **kw):
-        memoize.mem[f] = v = f(*args, **kw)
-        return v
+        if f not in memoize.mem:
+            memoize.mem[f] = f(*args, **kw)
+        return memoize.mem[f]
     return w
 
 
@@ -304,16 +305,6 @@ class Flake8Checker(object):
         cls.requirements_max_depth = options.requirements_max_depth
 
     @classmethod
-    @memoize
-    def get_requirements(cls):
-        """Get package requirements."""
-        if not os.path.exists("requirements.txt"):
-            LOG.debug("No requirements.txt file")
-            return ()
-        return tuple(parse_requirements(cls.resolve_requirement(
-            "-r requirements.txt", cls.requirements_max_depth + 1)))
-
-    @classmethod
     def resolve_requirement(cls, requirement, max_depth=0):
         """Resolves flags like -r in an individual requirement line."""
         requirement = requirement.strip()
@@ -336,6 +327,16 @@ class Flake8Checker(object):
             return resolved
 
         return [requirement]
+
+    @classmethod
+    @memoize
+    def get_requirements(cls):
+        """Get package requirements."""
+        if not os.path.exists("requirements.txt"):
+            LOG.debug("No requirements.txt file")
+            return ()
+        return tuple(parse_requirements(cls.resolve_requirement(
+            "-r requirements.txt", cls.requirements_max_depth + 1)))
 
     @classmethod
     @memoize
