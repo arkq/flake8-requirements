@@ -506,7 +506,9 @@ KNOWN_3RD_PARTIES = {
     "pyopenssl": ["OpenSSL"],
     "python-dateutil": ["dateutil"],
     "pyyaml": ["yaml"],
+    "scikit-learn": ["sklearn"],
     "setuptools": ["pkg_resources", "setuptools"],
     "splunk_sdk": ["splunklib"],
+    "tensorboardx": ["tensorboardX"],
     "xlwt_future": ["xlwt"],
 }
