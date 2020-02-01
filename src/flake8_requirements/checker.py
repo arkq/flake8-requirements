@@ -7,6 +7,7 @@ from functools import wraps
 from logging import getLogger
 
 import flake8
+import toml
 from pkg_resources import parse_requirements
 
 from .modules import KNOWN_3RD_PARTIES
@@ -340,60 +341,98 @@ class Flake8Checker(object):
 
     @classmethod
     @memoize
-    def get_requirements(cls):
-        """Get package requirements."""
-        if not os.path.exists("requirements.txt"):
-            LOG.debug("No requirements.txt file")
+    def get_pyproject_toml(cls):
+        """Try to load PEP 518 configuration file."""
+        try:
+            with open("pyproject.toml") as f:
+                return toml.loads(f.read())
+        except IOError as e:
+            LOG.warning("Couldn't load project setup: %s", e)
+            return {}
+
+    @classmethod
+    def get_pyproject_toml_poetry(cls):
+        """Try to get poetry configuration."""
+        cfg_pep518 = cls.get_pyproject_toml()
+        return cfg_pep518.get('tool', {}).get('poetry', {})
+
+    @classmethod
+    @memoize
+    def get_requirements_txt(cls):
+        """Try to load requirements from text file."""
+        try:
+            if not os.path.exists("requirements.txt"):
+                return ()
+            return tuple(parse_requirements(cls.resolve_requirement(
+                "-r requirements.txt", cls.requirements_max_depth + 1)))
+        except IOError as e:
+            LOG.debug("Couldn't load requirements: %s", e)
             return ()
-        return tuple(parse_requirements(cls.resolve_requirement(
-            "-r requirements.txt", cls.requirements_max_depth + 1)))
+
+    @classmethod
+    @memoize
+    def get_setup_py(cls):
+        """Try to load standard setup file."""
+        try:
+            with open("setup.py") as f:
+                return SetupVisitor(ast.parse(f.read()))
+        except IOError as e:
+            LOG.debug("Couldn't load project setup: %s", e)
+            return SetupVisitor(ast.parse(""))
 
     @classmethod
     @memoize
     def get_mods_1st_party(cls):
-        setup = cls.get_setup()
         mods_1st_party = set()
         # Get 1st party modules (used for absolute imports).
-        modules = [project2module(setup.keywords.get('name', ""))]
+        modules = [project2module(
+            cls.get_setup_py().keywords.get('name') or
+            cls.get_pyproject_toml_poetry().get('name') or
+            "")]
         if modules[0] in cls.known_modules:
             modules = cls.known_modules[modules[0]]
         mods_1st_party.update(modsplit(x) for x in modules)
         return mods_1st_party
 
-    @memoize
-    def get_mods_3rd_party(cls):
-        setup = cls.get_setup()
-        requirements = cls.get_requirements()
+    def get_mods_3rd_party_requirements(self):
+        """Get list of 3rd party requirements."""
 
-        if setup.redirected:
-            # Use requirements from setup if available.
-            requirements = setup.get_requirements(
-                setup=cls.processing_setup_py,
+        # Use requirements from setup if available.
+        cfg_setup = self.get_setup_py()
+        if cfg_setup.redirected:
+            return cfg_setup.get_requirements(
+                setup=self.processing_setup_py,
                 tests=True,
             )
 
+        # Check project configuration for requirements.
+        cfg_poetry = self.get_pyproject_toml_poetry()
+        if cfg_poetry:
+            requirements = []
+            requirements.extend(parse_requirements(
+                cfg_poetry.get('dependencies', ()),
+            ))
+            requirements.extend(parse_requirements(
+                cfg_poetry.get('dev-dependencies', ()),
+            ))
+            return requirements
+
+        # Get requirements from text file.
+        return self.get_requirements_txt()
+
+    @memoize
+    def get_mods_3rd_party(self):
         mods_3rd_party = set()
         # Get 3rd party module names based on requirements.
-        for requirement in requirements:
+        for requirement in self.get_mods_3rd_party_requirements():
             modules = [project2module(requirement.project_name)]
             if modules[0] in KNOWN_3RD_PARTIES:
                 modules = KNOWN_3RD_PARTIES[modules[0]]
-            if modules[0] in cls.known_modules:
-                modules = cls.known_modules[modules[0]]
+            if modules[0] in self.known_modules:
+                modules = self.known_modules[modules[0]]
             mods_3rd_party.update(modsplit(x) for x in modules)
 
         return mods_3rd_party
-
-    @classmethod
-    @memoize
-    def get_setup(cls):
-        """Get package setup."""
-        try:
-            with open("setup.py") as f:
-                return SetupVisitor(ast.parse(f.read()))
-        except IOError as e:
-            LOG.warning("Couldn't open setup file: %s", e)
-            return SetupVisitor(ast.parse(""))
 
     @property
     def processing_setup_py(self):

@@ -1,4 +1,4 @@
-from unittest import TestCase
+import unittest
 
 from pkg_resources import parse_requirements
 
@@ -13,7 +13,10 @@ except ImportError:
     builtins_open = '__builtin__.open'
 
 
-class RequirementsTestCase(TestCase):
+class RequirementsTestCase(unittest.TestCase):
+
+    def setUp(self):
+        memoize.mem = {}
 
     def test_resolve_requirement_with_blank(self):
         self.assertEqual(Flake8Checker.resolve_requirement(""), [])
@@ -73,9 +76,8 @@ class RequirementsTestCase(TestCase):
 
     def test_init_with_no_requirements(self):
         with mock.patch("os.path.exists", return_value=False) as exists:
-            memoize.mem = {}
             checker = Flake8Checker(None, None)
-            requirements = checker.get_requirements()
+            requirements = checker.get_requirements_txt()
             self.assertEqual(requirements, ())
             exists.assert_called_once_with("requirements.txt")
 
@@ -88,9 +90,8 @@ class RequirementsTestCase(TestCase):
                     mock.mock_open(read_data=content).return_value,
                 )
 
-                memoize.mem = {}
                 checker = Flake8Checker(None, None)
-                requirements = checker.get_requirements()
+                requirements = checker.get_requirements_txt()
 
                 self.assertEqual(
                     sorted(requirements, key=lambda x: x.project_name),
@@ -113,10 +114,9 @@ class RequirementsTestCase(TestCase):
 
                 with self.assertRaises(RuntimeError):
                     try:
-                        memoize.mem = {}
                         Flake8Checker.requirements_max_depth = 0
                         checker = Flake8Checker(None, None)
-                        checker.get_requirements()
+                        checker.get_requirements_txt()
                     finally:
                         Flake8Checker.requirements_max_depth = 1
 
@@ -131,9 +131,8 @@ class RequirementsTestCase(TestCase):
                     mock.mock_open(read_data=inner_content).return_value,
                 )
 
-                memoize.mem = {}
                 checker = Flake8Checker(None, None)
-                requirements = checker.get_requirements()
+                requirements = checker.get_requirements_txt()
 
                 self.assertEqual(
                     sorted(requirements, key=lambda x: x.project_name),

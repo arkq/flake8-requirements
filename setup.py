@@ -29,6 +29,7 @@ setup(
     install_requires=[
         "flake8 >= 2.0.0",
         "setuptools",
+        "toml",
     ],
     setup_requires=["pytest-runner"],
     tests_require=["mock", "pytest"],

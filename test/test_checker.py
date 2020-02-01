@@ -24,7 +24,7 @@ class SetupVisitorMock(checker.SetupVisitor):
 class Flake8Checker(checker.Flake8Checker):
 
     @classmethod
-    def get_setup(cls):
+    def get_setup_py(cls):
         return SetupVisitorMock()
 
     @property
