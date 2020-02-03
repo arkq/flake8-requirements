@@ -7,7 +7,7 @@ package import requirements. It reports missing and/or not used project direct d
 This plug-in adds new flake8 warnings:
 
 - ``I900``: Package is not listed as a requirement.
-- ``I901``: Package is require but not used.
+- ``I901``: Package is required but not used.
 
 Important notice
 ----------------
