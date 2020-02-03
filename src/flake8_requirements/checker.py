@@ -68,6 +68,19 @@ def project2module(project):
     return project
 
 
+def joinlines(lines):
+    """Strip comments and join line continuations."""
+    joined_line = ""
+    for line in map(lambda x: x.strip(), lines):
+        if not line or line.startswith("#"):
+            continue
+        if line.endswith("\\"):
+            joined_line += line[:-1]
+            continue
+        yield joined_line + line
+        joined_line = ""
+
+
 class ImportVisitor(ast.NodeVisitor):
     """Import statement visitor."""
 
@@ -318,25 +331,32 @@ class Flake8Checker(object):
     @classmethod
     def resolve_requirement(cls, requirement, max_depth=0):
         """Resolves flags like -r in an individual requirement line."""
-        requirement = requirement.strip()
 
-        if requirement.startswith("#") or not requirement:
-            return []
+        option = None
+        option_matcher = re.match(r"(-[\w-]+)(.*)", requirement)
+        if option_matcher:
+            option = option_matcher.group(1)
+            requirement = option_matcher.group(2).lstrip()
 
-        if requirement.startswith("-r "):
+        if option in ("-e", "--editable"):
+            # We do not care about installation mode.
+            option = None
+
+        if option in ("-r", "--requirement"):
             # Error out if we need to recurse deeper than allowed.
             if max_depth <= 0:
                 msg = "Cannot resolve {}: beyond max depth"
-                raise RuntimeError(msg.format(requirement.strip()))
-
+                raise RuntimeError(msg.format(requirement))
             resolved = []
             # Error out if requirements file cannot be opened.
-            with open(requirement[3:].lstrip()) as f:
-                for line in f.readlines():
+            with open(requirement) as f:
+                for line in joinlines(f.readlines()):
                     resolved.extend(cls.resolve_requirement(
                         line, max_depth - 1))
             return resolved
 
+        if option:
+            return []
         return [requirement]
 
     @classmethod

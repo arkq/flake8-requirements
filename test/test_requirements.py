@@ -18,19 +18,16 @@ class RequirementsTestCase(unittest.TestCase):
     def setUp(self):
         memoize.mem = {}
 
-    def test_resolve_requirement_with_blank(self):
-        self.assertEqual(Flake8Checker.resolve_requirement(""), [])
-
-    def test_resolve_requirement_with_comment(self):
-        self.assertEqual(
-            Flake8Checker.resolve_requirement("#-r requirements.txt"),
-            [],
-        )
-
-    def test_resolve_requirement_with_simple(self):
+    def test_resolve_requirement(self):
         self.assertEqual(
             Flake8Checker.resolve_requirement("foo >= 1.0.0"),
             ["foo >= 1.0.0"],
+        )
+
+    def test_resolve_requirement_option(self):
+        self.assertEqual(
+            Flake8Checker.resolve_requirement("--extra-index-url"),
+            [],
         )
 
     def test_resolve_requirement_with_file_beyond_max_depth(self):
@@ -53,6 +50,14 @@ class RequirementsTestCase(unittest.TestCase):
                 ["foo >= 1.0.0", "bar <= 1.0.0"],
             )
 
+    def test_resolve_requirement_with_file_content_line_continuation(self):
+        content = "foo[bar] \\\n>= 1.0.0\n"
+        with mock.patch(builtins_open, mock.mock_open(read_data=content)):
+            self.assertEqual(
+                Flake8Checker.resolve_requirement("-r requirements.txt", 1),
+                ["foo[bar] >= 1.0.0"],
+            )
+
     def test_resolve_requirement_with_file_recursion_beyond_max_depth(self):
         content = "-r requirements.txt\n"
         with mock.patch(builtins_open, mock.mock_open(read_data=content)):
@@ -60,7 +65,7 @@ class RequirementsTestCase(unittest.TestCase):
                 Flake8Checker.resolve_requirement("-r requirements.txt", 1),
 
     def test_resolve_requirement_with_file_recursion(self):
-        content = "foo >= 1.0.0\n-r inner.txt\nbar <= 1.0.0\n"
+        content = "--requirement inner.txt\nbar <= 1.0.0\n"
         inner_content = "# inner\nbaz\n\nqux\n"
 
         with mock.patch(builtins_open, mock.mock_open()) as m:
@@ -71,7 +76,7 @@ class RequirementsTestCase(unittest.TestCase):
 
             self.assertEqual(
                 Flake8Checker.resolve_requirement("-r requirements.txt", 2),
-                ["foo >= 1.0.0", "baz", "qux", "bar <= 1.0.0"],
+                ["baz", "qux", "bar <= 1.0.0"],
             )
 
     def test_init_with_no_requirements(self):
