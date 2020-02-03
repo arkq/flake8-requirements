@@ -322,8 +322,17 @@ class Flake8Checker(object):
 
         if requirement.startswith("#") or not requirement:
             return []
-
-        if requirement.startswith("-r "):
+        
+        if requirement.startswith("-i ") or requirement.startswith("--index-url "):
+            return []
+        
+        if requirement.startswith("--extra-index-url "):
+            return []
+        
+        if requirement.startswith("--no-index"):
+            return []
+        
+        if requirement.startswith("-r ") or requirement.startswith("--requirement "):
             # Error out if we need to recurse deeper than allowed.
             if max_depth <= 0:
                 msg = "Cannot resolve {}: beyond max depth"
