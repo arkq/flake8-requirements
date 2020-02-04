@@ -276,10 +276,16 @@ class Flake8Checker(object):
     name = "flake8-requirements"
     version = __version__
 
+    # Build-in mapping for known 3rd party modules.
+    known_3rd_parties = {
+        project2module(k): v
+        for k, v in KNOWN_3RD_PARTIES.items()
+    }
+
     # User defined project->modules mapping.
     known_modules = {}
 
-    # max depth to resolve recursive requirements
+    # Max depth to resolve recursive requirements.
     requirements_max_depth = 1
 
     def __init__(self, tree, filename, lines=None):
@@ -446,8 +452,8 @@ class Flake8Checker(object):
         # Get 3rd party module names based on requirements.
         for requirement in self.get_mods_3rd_party_requirements():
             modules = [project2module(requirement.project_name)]
-            if modules[0] in KNOWN_3RD_PARTIES:
-                modules = KNOWN_3RD_PARTIES[modules[0]]
+            if modules[0] in self.known_3rd_parties:
+                modules = self.known_3rd_parties[modules[0]]
             if modules[0] in self.known_modules:
                 modules = self.known_modules[modules[0]]
             mods_3rd_party.update(modsplit(x) for x in modules)
