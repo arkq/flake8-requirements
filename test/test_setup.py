@@ -16,7 +16,7 @@ class Flake8CheckerTestCase(unittest.TestCase):
             "packages=['']",
             "url='URL'",
         )))
-        setup = SetupVisitor(ast.parse(code))
+        setup = SetupVisitor(ast.parse(code), "")
         self.assertEqual(setup.redirected, True)
         self.assertDictEqual(setup.keywords, {
             'name': 'A',
@@ -30,7 +30,7 @@ class Flake8CheckerTestCase(unittest.TestCase):
             "{}='{}'".format(x, x)
             for x in SetupVisitor.attributes
         ))
-        setup = SetupVisitor(ast.parse(code))
+        setup = SetupVisitor(ast.parse(code), "")
         self.assertEqual(setup.redirected, True)
         self.assertDictEqual(setup.keywords, {
             x: x for x in SetupVisitor.attributes
@@ -43,7 +43,7 @@ class Flake8CheckerTestCase(unittest.TestCase):
             "processing=True",
             "verbose=True",
         )))
-        setup = SetupVisitor(ast.parse(code))
+        setup = SetupVisitor(ast.parse(code), "")
         self.assertEqual(setup.redirected, False)
 
     def test_get_requirements(self):
@@ -55,7 +55,7 @@ class Flake8CheckerTestCase(unittest.TestCase):
             'extras_require': {
                 'extra': ["extra < 10"],
             },
-        }))))
+        }))), "")
         self.assertEqual(setup.redirected, True)
         self.assertEqual(
             sorted(setup.get_requirements(), key=lambda x: x.project_name),

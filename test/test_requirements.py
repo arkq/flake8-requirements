@@ -80,71 +80,59 @@ class RequirementsTestCase(unittest.TestCase):
             )
 
     def test_init_with_no_requirements(self):
-        with mock.patch("os.path.exists", return_value=False) as exists:
+        with mock.patch(builtins_open, mock.mock_open()) as m:
+            m.side_effect = IOError("No such file or directory"),
             checker = Flake8Checker(None, None)
-            requirements = checker.get_requirements_txt()
-            self.assertEqual(requirements, ())
-            exists.assert_called_once_with("requirements.txt")
+            self.assertEqual(checker.get_requirements_txt(), ())
 
     def test_init_with_simple_requirements(self):
         content = "foo >= 1.0.0\nbar <= 1.0.0\n"
+        with mock.patch(builtins_open, mock.mock_open(read_data=content)):
 
-        with mock.patch("os.path.exists", return_value=True):
-            with mock.patch(builtins_open, mock.mock_open()) as m:
-                m.side_effect = (
-                    mock.mock_open(read_data=content).return_value,
-                )
-
-                checker = Flake8Checker(None, None)
-                requirements = checker.get_requirements_txt()
-
-                self.assertEqual(
-                    sorted(requirements, key=lambda x: x.project_name),
-                    sorted(parse_requirements([
-                        "foo >= 1.0.0",
-                        "bar <= 1.0.0",
-                    ]), key=lambda x: x.project_name),
-                )
+            checker = Flake8Checker(None, None)
+            self.assertEqual(
+                checker.get_requirements_txt(),
+                tuple(parse_requirements([
+                    "foo >= 1.0.0",
+                    "bar <= 1.0.0",
+                ])),
+            )
 
     def test_init_with_recursive_requirements_beyond_max_depth(self):
         content = "foo >= 1.0.0\n-r inner.txt\nbar <= 1.0.0\n"
         inner_content = "# inner\nbaz\n\nqux\n"
 
-        with mock.patch("os.path.exists", return_value=True):
-            with mock.patch(builtins_open, mock.mock_open()) as m:
-                m.side_effect = (
-                    mock.mock_open(read_data=content).return_value,
-                    mock.mock_open(read_data=inner_content).return_value,
-                )
+        with mock.patch(builtins_open, mock.mock_open()) as m:
+            m.side_effect = (
+                mock.mock_open(read_data=content).return_value,
+                mock.mock_open(read_data=inner_content).return_value,
+            )
 
-                with self.assertRaises(RuntimeError):
-                    try:
-                        Flake8Checker.requirements_max_depth = 0
-                        checker = Flake8Checker(None, None)
-                        checker.get_requirements_txt()
-                    finally:
-                        Flake8Checker.requirements_max_depth = 1
+            with self.assertRaises(RuntimeError):
+                try:
+                    Flake8Checker.requirements_max_depth = 0
+                    checker = Flake8Checker(None, None)
+                    checker.get_requirements_txt()
+                finally:
+                    Flake8Checker.requirements_max_depth = 1
 
     def test_init_with_recursive_requirements(self):
         content = "foo >= 1.0.0\n-r inner.txt\nbar <= 1.0.0\n"
         inner_content = "# inner\nbaz\n\nqux\n"
 
-        with mock.patch("os.path.exists", return_value=True):
-            with mock.patch(builtins_open, mock.mock_open()) as m:
-                m.side_effect = (
-                    mock.mock_open(read_data=content).return_value,
-                    mock.mock_open(read_data=inner_content).return_value,
-                )
+        with mock.patch(builtins_open, mock.mock_open()) as m:
+            m.side_effect = (
+                mock.mock_open(read_data=content).return_value,
+                mock.mock_open(read_data=inner_content).return_value,
+            )
 
-                checker = Flake8Checker(None, None)
-                requirements = checker.get_requirements_txt()
-
-                self.assertEqual(
-                    sorted(requirements, key=lambda x: x.project_name),
-                    sorted(parse_requirements([
-                        "foo >= 1.0.0",
-                        "baz",
-                        "qux",
-                        "bar <= 1.0.0",
-                    ]), key=lambda x: x.project_name),
-                )
+            checker = Flake8Checker(None, None)
+            self.assertEqual(
+                checker.get_requirements_txt(),
+                tuple(parse_requirements([
+                    "foo >= 1.0.0",
+                    "baz",
+                    "qux",
+                    "bar <= 1.0.0",
+                ])),
+            )

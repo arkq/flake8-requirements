@@ -15,7 +15,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -169,7 +169,7 @@ class SetupVisitor(ast.NodeVisitor):
         'zip_safe': 0.6,
     }
 
-    def __init__(self, tree):
+    def __init__(self, tree, cwd):
         """Initialize package setup visitor."""
         self.redirected = False
         self.keywords = {}
@@ -188,13 +188,13 @@ class SetupVisitor(ast.NodeVisitor):
         #      have to add its root directory to the import search path.
         #      Note however, that this hack might break further imports
         #      for OUR Python instance (we're changing our own sys.path)!
-        sys.path.insert(0, os.getcwd())
+        sys.path.insert(0, cwd)
 
         try:
             tree = ast.fix_missing_locations(tree)
             eval(compile(tree, "<str>", mode='exec'), {
                 '__name__': "__main__",
-                '__file__': "setup.py",
+                '__file__': os.path.join(cwd, "setup.py"),
                 '__f8r_setup': setup,
             })
         except Exception as e:
@@ -204,6 +204,7 @@ class SetupVisitor(ast.NodeVisitor):
             #      heuristic for function arguments). Anyway, we shall not
             #      break flake8 execution due to out eval() usage.
             LOG.exception("Couldn't evaluate setup.py: %s", e)
+            self.redirected = False
 
         # Restore import search path.
         sys.path.pop(0)
@@ -288,6 +289,9 @@ class Flake8Checker(object):
     # Max depth to resolve recursive requirements.
     requirements_max_depth = 1
 
+    # Root directory of the project.
+    root_dir = ""
+
     def __init__(self, tree, filename, lines=None):
         """Initialize requirements checker."""
         self.tree = tree
@@ -333,6 +337,20 @@ class Flake8Checker(object):
             ]
         }
         cls.requirements_max_depth = options.requirements_max_depth
+        cls.discover_project_root_dir()
+
+    @classmethod
+    def discover_project_root_dir(cls):
+        """Discover project's root directory."""
+        root_dir = os.getcwd()
+        root_files = ["pyproject.toml", "requirements.txt", "setup.py"]
+        while root_dir != os.path.abspath(os.sep):
+            paths = [os.path.join(root_dir, x) for x in root_files]
+            if any(map(os.path.exists, paths)):
+                LOG.info("Discovered root directory: %s", root_dir)
+                cls.root_dir = root_dir
+                break
+            root_dir = os.path.abspath(os.path.join(root_dir, ".."))
 
     @classmethod
     def resolve_requirement(cls, requirement, max_depth=0):
@@ -355,7 +373,7 @@ class Flake8Checker(object):
                 raise RuntimeError(msg.format(requirement))
             resolved = []
             # Error out if requirements file cannot be opened.
-            with open(requirement) as f:
+            with open(os.path.join(cls.root_dir, requirement)) as f:
                 for line in joinlines(f.readlines()):
                     resolved.extend(cls.resolve_requirement(
                         line, max_depth - 1))
@@ -370,10 +388,10 @@ class Flake8Checker(object):
     def get_pyproject_toml(cls):
         """Try to load PEP 518 configuration file."""
         try:
-            with open("pyproject.toml") as f:
+            with open(os.path.join(cls.root_dir, "pyproject.toml")) as f:
                 return toml.loads(f.read())
         except IOError as e:
-            LOG.warning("Couldn't load project setup: %s", e)
+            LOG.debug("Couldn't load project setup: %s", e)
             return {}
 
     @classmethod
@@ -387,10 +405,9 @@ class Flake8Checker(object):
     def get_requirements_txt(cls):
         """Try to load requirements from text file."""
         try:
-            if not os.path.exists("requirements.txt"):
-                return ()
+            path = os.path.join(cls.root_dir, "requirements.txt")
             return tuple(parse_requirements(cls.resolve_requirement(
-                "-r requirements.txt", cls.requirements_max_depth + 1)))
+                "-r {}".format(path), cls.requirements_max_depth + 1)))
         except IOError as e:
             LOG.debug("Couldn't load requirements: %s", e)
             return ()
@@ -400,11 +417,11 @@ class Flake8Checker(object):
     def get_setup_py(cls):
         """Try to load standard setup file."""
         try:
-            with open("setup.py") as f:
-                return SetupVisitor(ast.parse(f.read()))
+            with open(os.path.join(cls.root_dir, "setup.py")) as f:
+                return SetupVisitor(ast.parse(f.read()), cls.root_dir)
         except IOError as e:
             LOG.debug("Couldn't load project setup: %s", e)
-            return SetupVisitor(ast.parse(""))
+            return SetupVisitor(ast.parse(""), cls.root_dir)
 
     @classmethod
     @memoize
