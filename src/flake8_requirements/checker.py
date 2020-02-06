@@ -15,7 +15,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.3.1"
+__version__ = "1.3.2"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -69,16 +69,20 @@ def project2module(project):
 
 
 def joinlines(lines):
-    """Strip comments and join line continuations."""
+    """Join line continuations and strip comments."""
     joined_line = ""
     for line in map(lambda x: x.strip(), lines):
-        if not line or line.startswith("#"):
-            continue
-        if line.endswith("\\"):
+        comment = line.startswith("#")
+        if line.endswith("\\") and not comment:
             joined_line += line[:-1]
             continue
-        yield joined_line + line
-        joined_line = ""
+        if not comment:
+            joined_line += line
+        if joined_line:
+            yield joined_line
+            joined_line = ""
+    if joined_line:
+        yield joined_line
 
 
 class ImportVisitor(ast.NodeVisitor):

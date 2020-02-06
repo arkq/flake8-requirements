@@ -64,6 +64,14 @@ class RequirementsTestCase(unittest.TestCase):
                 ["foo"],
             )
 
+    def test_resolve_requirement_with_file_content_line_continuation_2(self):
+        content = "foo \\\n>= 1.0.0 \\\n# comment \\\nbar \\"
+        with mock.patch(builtins_open, mock.mock_open(read_data=content)):
+            self.assertEqual(
+                Flake8Checker.resolve_requirement("-r requirements.txt", 1),
+                ["foo", "bar"],
+            )
+
     def test_resolve_requirement_with_file_recursion_beyond_max_depth(self):
         content = "-r requirements.txt\n"
         with mock.patch(builtins_open, mock.mock_open(read_data=content)):
