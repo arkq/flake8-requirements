@@ -73,6 +73,8 @@ def joinlines(lines):
     joined_line = ""
     for line in map(lambda x: x.strip(), lines):
         if not line or line.startswith("#"):
+            yield joined_line
+            joined_line = ""
             continue
         if line.endswith("\\"):
             joined_line += line[:-1]
