@@ -21,10 +21,16 @@ class RequirementsTestCase(unittest.TestCase):
     def test_resolve_requirement(self):
         self.assertEqual(
             Flake8Checker.resolve_requirement("foo >= 1.0.0"),
-            ["foo >= 1.0.0"],
+            ["foo"],
         )
 
-    def test_resolve_requirement_option(self):
+    def test_resolve_requirement_with_option(self):
+        self.assertEqual(
+            Flake8Checker.resolve_requirement("foo-bar.v1==1.0 --option"),
+            ["foo-bar.v1"],
+        )
+
+    def test_resolve_requirement_standalone_option(self):
         self.assertEqual(
             Flake8Checker.resolve_requirement("--extra-index-url"),
             [],
@@ -47,7 +53,7 @@ class RequirementsTestCase(unittest.TestCase):
         with mock.patch(builtins_open, mock.mock_open(read_data=content)):
             self.assertEqual(
                 Flake8Checker.resolve_requirement("-r requirements.txt", 1),
-                ["foo >= 1.0.0", "bar <= 1.0.0"],
+                ["foo", "bar"],
             )
 
     def test_resolve_requirement_with_file_content_line_continuation(self):
@@ -55,7 +61,7 @@ class RequirementsTestCase(unittest.TestCase):
         with mock.patch(builtins_open, mock.mock_open(read_data=content)):
             self.assertEqual(
                 Flake8Checker.resolve_requirement("-r requirements.txt", 1),
-                ["foo[bar] >= 1.0.0"],
+                ["foo"],
             )
 
     def test_resolve_requirement_with_file_recursion_beyond_max_depth(self):
@@ -76,7 +82,7 @@ class RequirementsTestCase(unittest.TestCase):
 
             self.assertEqual(
                 Flake8Checker.resolve_requirement("-r requirements.txt", 2),
-                ["baz", "qux", "bar <= 1.0.0"],
+                ["baz", "qux", "bar"],
             )
 
     def test_init_with_no_requirements(self):
@@ -93,8 +99,8 @@ class RequirementsTestCase(unittest.TestCase):
             self.assertEqual(
                 checker.get_requirements_txt(),
                 tuple(parse_requirements([
-                    "foo >= 1.0.0",
-                    "bar <= 1.0.0",
+                    "foo",
+                    "bar",
                 ])),
             )
 
@@ -130,9 +136,9 @@ class RequirementsTestCase(unittest.TestCase):
             self.assertEqual(
                 checker.get_requirements_txt(),
                 tuple(parse_requirements([
-                    "foo >= 1.0.0",
+                    "foo",
                     "baz",
                     "qux",
-                    "bar <= 1.0.0",
+                    "bar",
                 ])),
             )

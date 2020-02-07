@@ -380,8 +380,11 @@ class Flake8Checker(object):
             return resolved
 
         if option:
+            # Skip whole line if option was not processed earlier.
             return []
-        return [requirement]
+
+        # Extract requirement name (skip comments, options, etc.).
+        return [re.split(r"[^\w.-]+", requirement, 1)[0]]
 
     @classmethod
     @memoize
