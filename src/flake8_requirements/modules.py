@@ -509,6 +509,7 @@ KNOWN_3RD_PARTIES = {
     "mysql_python": ["MySQLdb"],
     "mysqlclient": ["_mysql", "MySQLdb"],
     "pillow": ["PIL"],
+    "protobuf": ["google.protobuf"],
     "py_lru_cache": ["lru"],
     "pyicu": ["icu"],
     "pyjwt": ["jwt"],
