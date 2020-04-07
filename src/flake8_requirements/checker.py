@@ -15,7 +15,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.3.0"
+__version__ = "1.3.1"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
