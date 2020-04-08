@@ -1,0 +1,22 @@
+name: Check Python Package
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - name: Lint with flake8
+      run: |
+        pip install flake8
+        flake8 --count --show-source --statistics src test
+    - name: Test with pytest
+      run: |
+        python setup.py pytest
