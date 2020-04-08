@@ -496,9 +496,11 @@ STDLIB_PY3 = (
 # Mapping for known 3rd party projects, which provide more than one module
 # or the name of the module is different than the project name itself.
 KNOWN_3RD_PARTIES = {
+    "allure-pytest": ["allure"],
     "awesome_slugify": ["slugify"],
     "beautifulsoup4": ["bs4"],
     "cx_oracle": ["cx_Oracle"],
+    "databricks-connect": ["pyspark"],
     "enum34": ["enum"],
     "factory_boy": ["factory"],
     "google_api_python_client": ["apiclient", "googleapiclient"],
@@ -516,6 +518,7 @@ KNOWN_3RD_PARTIES = {
     "pillow": ["PIL"],
     "protobuf": ["google.protobuf"],
     "py_lru_cache": ["lru"],
+    "pyhamcrest": ["hamcrest"],
     "pyicu": ["icu"],
     "pyjwt": ["jwt"],
     "pyopenssl": ["OpenSSL"],
