@@ -528,6 +528,7 @@ KNOWN_3RD_PARTIES = {
     "pillow": ["PIL"],
     "protobuf": ["google.protobuf"],
     "py_lru_cache": ["lru"],
+    "pygobject": ["gi", "pygtkcompat"],
     "pyhamcrest": ["hamcrest"],
     "pyicu": ["icu"],
     "pyjwt": ["jwt"],
