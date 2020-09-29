@@ -93,6 +93,27 @@ class RequirementsTestCase(unittest.TestCase):
                 ["baz", "qux", "bar"],
             )
 
+    def test_resolve_requirement_with_relative_include(self):
+        requirements_txt = "-r requirements/production.txt"
+        production_txt = "-r common.txt\nfoo"
+        common_txt = "bar\n-r /not/a/relative/path/extras.txt"
+        extras_txt = "baz"
+        with mock.patch(builtins_open, mock.mock_open()) as m:
+            m.side_effect = (
+                mock.mock_open(read_data=requirements_txt).return_value,
+                mock.mock_open(read_data=production_txt).return_value,
+                mock.mock_open(read_data=common_txt).return_value,
+                mock.mock_open(read_data=extras_txt).return_value,
+            )
+            self.assertEqual(
+                Flake8Checker.resolve_requirement("-r requirements.txt", 5),
+                ["bar", "baz", "foo"],
+            )
+            m.assert_has_calls([mock.call("requirements.txt"),
+                               mock.call("requirements/production.txt"),
+                               mock.call("requirements/common.txt"),
+                               mock.call("/not/a/relative/path/extras.txt")])
+
     def test_init_with_no_requirements(self):
         with mock.patch(builtins_open, mock.mock_open()) as m:
             m.side_effect = IOError("No such file or directory"),

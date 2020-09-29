@@ -357,7 +357,7 @@ class Flake8Checker(object):
             root_dir = os.path.abspath(os.path.join(root_dir, ".."))
 
     @classmethod
-    def resolve_requirement(cls, requirement, max_depth=0):
+    def resolve_requirement(cls, requirement, max_depth=0, path=None):
         """Resolves flags like -r in an individual requirement line."""
 
         option = None
@@ -377,10 +377,13 @@ class Flake8Checker(object):
                 raise RuntimeError(msg.format(requirement))
             resolved = []
             # Error out if requirements file cannot be opened.
-            with open(os.path.join(cls.root_dir, requirement)) as f:
+            if not path:
+                path = cls.root_dir
+            with open(os.path.join(path, requirement)) as f:
                 for line in joinlines(f.readlines()):
                     resolved.extend(cls.resolve_requirement(
-                        line, max_depth - 1))
+                        line, max_depth - 1, os.path.join(cls.root_dir,
+                                                          os.path.dirname(requirement))))
             return resolved
 
         if option:
