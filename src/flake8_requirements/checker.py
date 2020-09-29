@@ -15,7 +15,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.3.2"
+__version__ = "1.3.3"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -357,7 +357,7 @@ class Flake8Checker(object):
             root_dir = os.path.abspath(os.path.join(root_dir, ".."))
 
     @classmethod
-    def resolve_requirement(cls, requirement, max_depth=0):
+    def resolve_requirement(cls, requirement, max_depth=0, path=None):
         """Resolves flags like -r in an individual requirement line."""
 
         option = None
@@ -377,10 +377,10 @@ class Flake8Checker(object):
                 raise RuntimeError(msg.format(requirement))
             resolved = []
             # Error out if requirements file cannot be opened.
-            with open(os.path.join(cls.root_dir, requirement)) as f:
+            with open(os.path.join(path or cls.root_dir, requirement)) as f:
                 for line in joinlines(f.readlines()):
                     resolved.extend(cls.resolve_requirement(
-                        line, max_depth - 1))
+                        line, max_depth - 1, os.path.dirname(f.name)))
             return resolved
 
         if option:
