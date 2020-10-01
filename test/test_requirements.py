@@ -1,4 +1,5 @@
 import unittest
+from collections import OrderedDict
 
 from pkg_resources import parse_requirements
 
@@ -11,6 +12,23 @@ try:
 except ImportError:
     import mock
     builtins_open = '__builtin__.open'
+
+
+def mock_open_with_name(read_data="", name="file.name"):
+    """Mock open call with a specified `name` attribute."""
+    m = mock.mock_open(read_data=read_data)
+    m.return_value.name = name
+    return m
+
+
+def mock_open_multiple(files=OrderedDict()):
+    """Create a mock open object for multiple files."""
+    m = mock.mock_open()
+    m.side_effect = [
+        mock_open_with_name(read_data=content, name=name).return_value
+        for name, content in files.items()
+    ]
+    return m
 
 
 class RequirementsTestCase(unittest.TestCase):
@@ -49,45 +67,44 @@ class RequirementsTestCase(unittest.TestCase):
             m.assert_called_once_with("requirements.txt")
 
     def test_resolve_requirement_with_file_content(self):
-        content = "foo >= 1.0.0\nbar <= 1.0.0\n"
-        with mock.patch(builtins_open, mock.mock_open(read_data=content)):
+        with mock.patch(builtins_open, mock_open_multiple(files=OrderedDict((
+            ("requirements.txt", "foo >= 1.0.0\nbar <= 1.0.0\n"),
+        )))):
             self.assertEqual(
                 Flake8Checker.resolve_requirement("-r requirements.txt", 1),
                 ["foo", "bar"],
             )
 
     def test_resolve_requirement_with_file_content_line_continuation(self):
-        content = "foo[bar] \\\n>= 1.0.0\n"
-        with mock.patch(builtins_open, mock.mock_open(read_data=content)):
+        with mock.patch(builtins_open, mock_open_multiple(files=OrderedDict((
+            ("requirements.txt", "foo[bar] \\\n>= 1.0.0\n"),
+        )))):
             self.assertEqual(
                 Flake8Checker.resolve_requirement("-r requirements.txt", 1),
                 ["foo"],
             )
 
     def test_resolve_requirement_with_file_content_line_continuation_2(self):
-        content = "foo \\\n>= 1.0.0 \\\n# comment \\\nbar \\"
-        with mock.patch(builtins_open, mock.mock_open(read_data=content)):
+        with mock.patch(builtins_open, mock_open_multiple(files=OrderedDict((
+            ("requirements.txt", "foo \\\n>= 1.0.0 \\\n# comment \\\nbar \\"),
+        )))):
             self.assertEqual(
                 Flake8Checker.resolve_requirement("-r requirements.txt", 1),
                 ["foo", "bar"],
             )
 
     def test_resolve_requirement_with_file_recursion_beyond_max_depth(self):
-        content = "-r requirements.txt\n"
-        with mock.patch(builtins_open, mock.mock_open(read_data=content)):
+        with mock.patch(builtins_open, mock_open_multiple(files=OrderedDict((
+            ("requirements.txt", "-r requirements.txt\n"),
+        )))):
             with self.assertRaises(RuntimeError):
                 Flake8Checker.resolve_requirement("-r requirements.txt", 1),
 
     def test_resolve_requirement_with_file_recursion(self):
-        content = "--requirement inner.txt\nbar <= 1.0.0\n"
-        inner_content = "# inner\nbaz\n\nqux\n"
-
-        with mock.patch(builtins_open, mock.mock_open()) as m:
-            m.side_effect = (
-                mock.mock_open(read_data=content).return_value,
-                mock.mock_open(read_data=inner_content).return_value,
-            )
-
+        with mock.patch(builtins_open, mock_open_multiple(files=OrderedDict((
+            ("requirements.txt", "--requirement inner.txt\nbar <= 1.0.0\n"),
+            ("inner.txt", "# inner\nbaz\n\nqux\n"),
+        )))):
             self.assertEqual(
                 Flake8Checker.resolve_requirement("-r requirements.txt", 2),
                 ["baz", "qux", "bar"],
@@ -100,9 +117,9 @@ class RequirementsTestCase(unittest.TestCase):
             self.assertEqual(checker.get_requirements_txt(), ())
 
     def test_init_with_simple_requirements(self):
-        content = "foo >= 1.0.0\nbar <= 1.0.0\n"
-        with mock.patch(builtins_open, mock.mock_open(read_data=content)):
-
+        with mock.patch(builtins_open, mock_open_multiple(files=OrderedDict((
+            ("requirements.txt", "foo >= 1.0.0\nbar <= 1.0.0\n"),
+        )))):
             checker = Flake8Checker(None, None)
             self.assertEqual(
                 checker.get_requirements_txt(),
@@ -113,15 +130,10 @@ class RequirementsTestCase(unittest.TestCase):
             )
 
     def test_init_with_recursive_requirements_beyond_max_depth(self):
-        content = "foo >= 1.0.0\n-r inner.txt\nbar <= 1.0.0\n"
-        inner_content = "# inner\nbaz\n\nqux\n"
-
-        with mock.patch(builtins_open, mock.mock_open()) as m:
-            m.side_effect = (
-                mock.mock_open(read_data=content).return_value,
-                mock.mock_open(read_data=inner_content).return_value,
-            )
-
+        with mock.patch(builtins_open, mock_open_multiple(files=OrderedDict((
+            ("requirements.txt", "foo >= 1.0.0\n-r inner.txt\nbar <= 1.0.0\n"),
+            ("inner.txt", "# inner\nbaz\n\nqux\n"),
+        )))):
             with self.assertRaises(RuntimeError):
                 try:
                     Flake8Checker.requirements_max_depth = 0
@@ -131,15 +143,10 @@ class RequirementsTestCase(unittest.TestCase):
                     Flake8Checker.requirements_max_depth = 1
 
     def test_init_with_recursive_requirements(self):
-        content = "foo >= 1.0.0\n-r inner.txt\nbar <= 1.0.0\n"
-        inner_content = "# inner\nbaz\n\nqux\n"
-
-        with mock.patch(builtins_open, mock.mock_open()) as m:
-            m.side_effect = (
-                mock.mock_open(read_data=content).return_value,
-                mock.mock_open(read_data=inner_content).return_value,
-            )
-
+        with mock.patch(builtins_open, mock_open_multiple(files=OrderedDict((
+            ("requirements.txt", "foo >= 1.0.0\n-r inner.txt\nbar <= 1.0.0\n"),
+            ("inner.txt", "# inner\nbaz\n\nqux\n"),
+        )))):
             checker = Flake8Checker(None, None)
             self.assertEqual(
                 checker.get_requirements_txt(),
