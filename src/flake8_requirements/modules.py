@@ -505,6 +505,7 @@ KNOWN_3RD_PARTIES = {
     #       but it depends on allure-python-commons which provides it. User
     #       will most likely specify allure-pytest as a dependency, though.
     "allure-pytest": ["allure"],
+    "attrs": ["attr"],
     "awesome_slugify": ["slugify"],
     "beautifulsoup4": ["bs4"],
     "cx_oracle": ["cx_Oracle"],
