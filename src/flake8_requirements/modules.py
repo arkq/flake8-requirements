@@ -524,6 +524,7 @@ KNOWN_3RD_PARTIES = {
     "grpcio-status": ["grpc_status"],
     "grpcio-testing": ["grpc_testing"],
     "grpcio-tools": ["grpc_tools"],
+    "ipython":["IPython"],
     "mysql_python": ["MySQLdb"],
     "mysqlclient": ["_mysql", "MySQLdb"],
     "pillow": ["PIL"],
