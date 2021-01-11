@@ -206,7 +206,7 @@ class SetupVisitor(ast.NodeVisitor):
             #      mean "fatal error". This exception might occur if e.g.
             #      we have hijacked local setup() function (due to matching
             #      heuristic for function arguments). Anyway, we shall not
-            #      break flake8 execution due to out eval() usage.
+            #      break flake8 execution due to our eval() usage.
             LOG.exception("Couldn't evaluate setup.py: %s", e)
             self.redirected = False
 
