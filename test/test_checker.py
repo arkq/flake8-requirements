@@ -32,10 +32,13 @@ class Flake8Checker(checker.Flake8Checker):
         return self.filename == "setup.py"
 
 
+class Flake8Options:
+    known_modules = ""
+    requirements_max_depth = 0
+    scan_host_site_packages = False
+
+
 def check(code, filename="<unknown>", options=None):
-    class Flake8Options:
-        known_modules = ""
-        requirements_max_depth = 0
     if options is None:
         options = Flake8Options
     checker.memoize.mem = {}
@@ -110,20 +113,18 @@ class Flake8CheckerTestCase(unittest.TestCase):
         self.assertEqual(len(errors), 0)
 
     def test_custom_mapping_parser(self):
-        class Flake8Options:
+        class Options(Flake8Options):
             known_modules = ":[pydrmcodec],mylib:[mylib.drm,mylib.ex]"
-            requirements_max_depth = 0
-        Flake8Checker.parse_options(Flake8Options)
+        Flake8Checker.parse_options(Options)
         self.assertEqual(
             Flake8Checker.known_modules,
             {"": ["pydrmcodec"], "mylib": ["mylib.drm", "mylib.ex"]},
         )
 
     def test_custom_mapping(self):
-        class Flake8Options:
+        class Options(Flake8Options):
             known_modules = "flake8-requires:[flake8req]"
-            requirements_max_depth = 0
-        errors = check("from flake8req import mymodule", options=Flake8Options)
+        errors = check("from flake8req import mymodule", options=Options)
         self.assertEqual(len(errors), 0)
 
     def test_setup_py(self):

@@ -1,6 +1,7 @@
 import ast
 import os
 import re
+import site
 import sys
 from collections import namedtuple
 from functools import wraps
@@ -9,6 +10,7 @@ from logging import getLogger
 import flake8
 import toml
 from pkg_resources import parse_requirements
+from pkg_resources import yield_lines
 
 from .modules import KNOWN_3RD_PARTIES
 from .modules import STDLIB_PY2
@@ -287,6 +289,9 @@ class Flake8Checker(object):
         for k, v in KNOWN_3RD_PARTIES.items()
     }
 
+    # Host-based mapping for 3rd party modules.
+    known_host_3rd_parties = {}
+
     # User defined project->modules mapping.
     known_modules = {}
 
@@ -329,6 +334,16 @@ class Flake8Checker(object):
             ),
             **kw
         )
+        manager.add_option(
+            "--scan-host-site-packages",
+            action='store_true',
+            help=(
+                "Scan host's site-packages directory for 3rd party projects, "
+                "which provide more than one module or the name of the module"
+                " is different than the project name itself."
+            ),
+            **kw
+        )
 
     @classmethod
     def parse_options(cls, options):
@@ -341,7 +356,38 @@ class Flake8Checker(object):
             ]
         }
         cls.requirements_max_depth = options.requirements_max_depth
+        if options.scan_host_site_packages:
+            cls.discover_host_3rd_party_modules()
         cls.discover_project_root_dir()
+
+    @classmethod
+    def discover_host_3rd_party_modules(cls):
+        """Scan host site-packages for 3rd party modules."""
+        try:
+            site_packages_dirs = site.getsitepackagess()
+            site_packages_dirs.append(site.getusersitepackages())
+        except AttributeError as e:
+            LOG.error("Couldn't get site packages: %s", e)
+            return
+        for site_dir in site_packages_dirs:
+            try:
+                dir_entries = os.listdir(site_dir)
+            except IOError:
+                continue
+            for egg in (x for x in dir_entries if x.endswith(".egg-info")):
+                pkg_info_path = os.path.join(site_dir, egg, "PKG-INFO")
+                modules_path = os.path.join(site_dir, egg, "top_level.txt")
+                if not os.path.isfile(pkg_info_path):
+                    continue
+                with open(pkg_info_path) as f:
+                    name = next(iter(
+                        line.split(":")[1].strip()
+                        for line in yield_lines(f.readlines())
+                        if line.lower().startswith("name:")
+                    ), "")
+                with open(modules_path) as f:
+                    modules = list(yield_lines(f.readlines()))
+                cls.known_host_3rd_parties[project2module(name)] = modules
 
     @classmethod
     def discover_project_root_dir(cls):
@@ -478,6 +524,8 @@ class Flake8Checker(object):
             modules = [project2module(requirement.project_name)]
             if modules[0] in self.known_3rd_parties:
                 modules = self.known_3rd_parties[modules[0]]
+            if modules[0] in self.known_host_3rd_parties:
+                modules = self.known_host_3rd_parties[modules[0]]
             if modules[0] in self.known_modules:
                 modules = self.known_modules[modules[0]]
             mods_3rd_party.update(modsplit(x) for x in modules)

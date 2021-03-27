@@ -63,6 +63,11 @@ Real life example::
   max-line-length = 100
   known-modules = my-lib:[mylib.drm,mylib.encryption]
 
+It is also possible to scan host's site-packages directory for installed packages. This feature is
+disabled by default, but user can enable it with the ``--scan-host-site-packages`` command line
+option. Please note, however, that the location of the site-packages directory will be determined
+by the Python version used for flake8 execution.
+
 If you use the ``-r`` flag in your ``requirements.txt`` file with more than one level of recursion
 (in other words, one file includes another, the included file includes yet another, and so on),
 add the ``--requirements-max-depth`` option to flake8 (for example, ``--requirements-max-depth=3``
