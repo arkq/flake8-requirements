@@ -17,7 +17,7 @@ In order to collect project's dependencies, this checker evaluates Python code f
 `eval() <https://docs.python.org/3/library/functions.html#eval>`_ function. As a fall-back
 method, this checker also tries to load dependencies from the ``pyproject.toml`` file from
 the `poetry <https://python-poetry.org/>`_ tool section, or from the ``requirements.txt``
-text file.
+text file in the project's root directory.
 
 At this point it is very important to be aware of the consequences of the above approach. One
 might inject malicious code into the ``setup.py`` file, which will be executed by this checker.
@@ -68,7 +68,11 @@ disabled by default, but user can enable it with the ``--scan-host-site-packages
 option. Please note, however, that the location of the site-packages directory will be determined
 by the Python version used for flake8 execution.
 
-If you use the ``-r`` flag in your ``requirements.txt`` file with more than one level of recursion
+In order to read requirements from the text file, user shall provide the location of such a file
+with the ``--requirements-file`` option. If the given location is not an absolute path, then it
+has to be specified as a path relative to the project's root directory.
+
+If you use the ``-r`` flag in your requirements text file with more than one level of recursion
 (in other words, one file includes another, the included file includes yet another, and so on),
 add the ``--requirements-max-depth`` option to flake8 (for example, ``--requirements-max-depth=3``
 to allow three levels of recursion).

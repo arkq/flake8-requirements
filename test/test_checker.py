@@ -34,6 +34,7 @@ class Flake8Checker(checker.Flake8Checker):
 
 class Flake8Options:
     known_modules = ""
+    requirements_file = None
     requirements_max_depth = 0
     scan_host_site_packages = False
 

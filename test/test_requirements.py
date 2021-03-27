@@ -136,6 +136,28 @@ class RequirementsTestCase(unittest.TestCase):
             checker = Flake8Checker(None, None)
             self.assertEqual(checker.get_requirements_txt(), ())
 
+    def test_init_with_user_requirements(self):
+        with mock.patch(builtins_open, mock_open_multiple(files=OrderedDict((
+            ("requirements/base.txt", "foo >= 1.0.0\n-r inner.txt\n"),
+            ("requirements/inner.txt", "bar\n"),
+        )))) as m:
+            try:
+                Flake8Checker.requirements_file = "requirements/base.txt"
+                checker = Flake8Checker(None, None)
+                self.assertEqual(
+                    checker.get_requirements_txt(),
+                    tuple(parse_requirements([
+                        "foo",
+                        "bar",
+                    ])),
+                )
+                m.assert_has_calls([
+                    mock.call("requirements/base.txt"),
+                    mock.call("requirements/inner.txt"),
+                ])
+            finally:
+                Flake8Checker.requirements_file = None
+
     def test_init_with_simple_requirements(self):
         with mock.patch(builtins_open, mock_open_multiple(files=OrderedDict((
             ("requirements.txt", "foo >= 1.0.0\nbar <= 1.0.0\n"),

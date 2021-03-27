@@ -17,7 +17,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.3.3"
+__version__ = "1.4.0"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -295,6 +295,9 @@ class Flake8Checker(object):
     # User defined project->modules mapping.
     known_modules = {}
 
+    # User provided requirements file.
+    requirements_file = None
+
     # Max depth to resolve recursive requirements.
     requirements_max_depth = 1
 
@@ -321,6 +324,18 @@ class Flake8Checker(object):
                 "User defined mapping between a project name and a list of"
                 " provided modules. For example: ``--known-modules=project:"
                 "[Project],extra-project:[extras,utilities]``."
+            ),
+            **kw
+        )
+        manager.add_option(
+            "--requirements-file",
+            action='store',
+            help=(
+                "Specify the name (location) of the requirements text file. "
+                "Unless an absolute path is given, the file will be searched "
+                "relative to the project's root directory. If this option is "
+                "given, requirements from setup.py or pyproject.toml will not"
+                " be taken into account."
             ),
             **kw
         )
@@ -355,6 +370,7 @@ class Flake8Checker(object):
                 for x in re.split(r"],?", options.known_modules)[:-1]
             ]
         }
+        cls.requirements_file = options.requirements_file
         cls.requirements_max_depth = options.requirements_max_depth
         if options.scan_host_site_packages:
             cls.discover_host_3rd_party_modules()
@@ -457,12 +473,14 @@ class Flake8Checker(object):
     @memoize
     def get_requirements_txt(cls):
         """Try to load requirements from text file."""
+        path = cls.requirements_file or "requirements.txt"
+        if not os.path.isabs(path):
+            path = os.path.join(cls.root_dir, path)
         try:
-            path = os.path.join(cls.root_dir, "requirements.txt")
             return tuple(parse_requirements(cls.resolve_requirement(
                 "-r {}".format(path), cls.requirements_max_depth + 1)))
         except IOError as e:
-            LOG.debug("Couldn't load requirements: %s", e)
+            LOG.error("Couldn't load requirements: %s", e)
             return ()
 
     @classmethod
@@ -493,6 +511,10 @@ class Flake8Checker(object):
     def get_mods_3rd_party_requirements(self):
         """Get list of 3rd party requirements."""
 
+        # Use user provided requirements text file.
+        if self.requirements_file:
+            return self.get_requirements_txt()
+
         # Use requirements from setup if available.
         cfg_setup = self.get_setup_py()
         if cfg_setup.redirected:
@@ -513,7 +535,7 @@ class Flake8Checker(object):
             ))
             return requirements
 
-        # Get requirements from text file.
+        # Fall-back to requirements.txt in the root directory.
         return self.get_requirements_txt()
 
     @memoize
