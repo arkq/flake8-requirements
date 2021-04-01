@@ -1,3 +1,4 @@
+import os
 import unittest
 from collections import OrderedDict
 
@@ -39,13 +40,13 @@ class RequirementsTestCase(unittest.TestCase):
     def test_resolve_requirement(self):
         self.assertEqual(
             Flake8Checker.resolve_requirement("foo >= 1.0.0"),
-            ["foo"],
+            ["foo >= 1.0.0"],
         )
 
     def test_resolve_requirement_with_option(self):
         self.assertEqual(
-            Flake8Checker.resolve_requirement("foo-bar.v1==1.0 --option"),
-            ["foo-bar.v1"],
+            Flake8Checker.resolve_requirement("foo-bar.v1==1.0 --hash=md5:."),
+            ["foo-bar.v1==1.0"],
         )
 
     def test_resolve_requirement_standalone_option(self):
@@ -72,7 +73,7 @@ class RequirementsTestCase(unittest.TestCase):
         )))):
             self.assertEqual(
                 Flake8Checker.resolve_requirement("-r requirements.txt", 1),
-                ["foo", "bar"],
+                ["foo >= 1.0.0", "bar <= 1.0.0"],
             )
 
     def test_resolve_requirement_with_file_content_line_continuation(self):
@@ -81,7 +82,7 @@ class RequirementsTestCase(unittest.TestCase):
         )))):
             self.assertEqual(
                 Flake8Checker.resolve_requirement("-r requirements.txt", 1),
-                ["foo"],
+                ["foo[bar] >= 1.0.0"],
             )
 
     def test_resolve_requirement_with_file_content_line_continuation_2(self):
@@ -90,7 +91,7 @@ class RequirementsTestCase(unittest.TestCase):
         )))):
             self.assertEqual(
                 Flake8Checker.resolve_requirement("-r requirements.txt", 1),
-                ["foo", "bar"],
+                ["foo >= 1.0.0", "bar"],
             )
 
     def test_resolve_requirement_with_file_recursion_beyond_max_depth(self):
@@ -107,7 +108,7 @@ class RequirementsTestCase(unittest.TestCase):
         )))):
             self.assertEqual(
                 Flake8Checker.resolve_requirement("-r requirements.txt", 2),
-                ["baz", "qux", "bar"],
+                ["baz", "qux", "bar <= 1.0.0"],
             )
 
     def test_resolve_requirement_with_relative_include(self):
@@ -147,7 +148,7 @@ class RequirementsTestCase(unittest.TestCase):
                 self.assertEqual(
                     checker.get_requirements_txt(),
                     tuple(parse_requirements([
-                        "foo",
+                        "foo >= 1.0.0",
                         "bar",
                     ])),
                 )
@@ -166,8 +167,8 @@ class RequirementsTestCase(unittest.TestCase):
             self.assertEqual(
                 checker.get_requirements_txt(),
                 tuple(parse_requirements([
-                    "foo",
-                    "bar",
+                    "foo >= 1.0.0",
+                    "bar <= 1.0.0",
                 ])),
             )
 
@@ -193,9 +194,34 @@ class RequirementsTestCase(unittest.TestCase):
             self.assertEqual(
                 checker.get_requirements_txt(),
                 tuple(parse_requirements([
-                    "foo",
+                    "foo >= 1.0.0",
                     "baz",
                     "qux",
-                    "bar",
+                    "bar <= 1.0.0",
+                ])),
+            )
+
+    def test_init_misc(self):
+        curdir = os.path.abspath(os.path.dirname(__file__))
+        with open(os.path.join(curdir, "test_requirements.txt")) as f:
+            requirements_content = f.read()
+        with mock.patch(builtins_open, mock_open_multiple(files=OrderedDict((
+            ("requirements.txt", requirements_content),
+        )))):
+            checker = Flake8Checker(None, None)
+            self.assertEqual(
+                checker.get_requirements_txt(),
+                tuple(parse_requirements([
+                    "nose",
+                    "apache == 0.6.9",
+                    "coverage[graph,test] ~= 3.1",
+                    "graph <2.0, >=1.2 ; python_version < '3.8'",
+                    "foo-project >= 1.2",
+                    "bar-project == 8.8",
+                    "configuration",
+                    "blackBox == 1.4.4",
+                    "exPackage_paint == 1.4.8.dev1984+49a8814",
+                    "package-one",
+                    "package-two",
                 ])),
             )

@@ -418,15 +418,32 @@ class Flake8Checker(object):
                 break
             root_dir = os.path.abspath(os.path.join(root_dir, ".."))
 
+    _requirement_match_option = re.compile(
+        r"(-[\w-]+)(.*)").match
+
+    _requirement_match_spec = re.compile(
+        r"(.*?)\s+--(global-option|install-option|hash)").match
+
+    _requirement_match_archive = re.compile(
+        r"(.*)(\.(tar(\.(bz2|gz|lz|lzma|xz))?|tbz|tgz|tlz|txz|whl|zip))",
+        re.IGNORECASE).match
+    _requirement_match_archive_spec = re.compile(
+        r"(\w+)(-[^-]+)?").match
+
+    _requirement_match_vcs = re.compile(
+        r"(git|hg|svn|bzr)\+(.*)").match
+    _requirement_match_vcs_spec = re.compile(
+        r".*egg=([\w\-\.]+)").match
+
     @classmethod
     def resolve_requirement(cls, requirement, max_depth=0, path=None):
         """Resolves flags like -r in an individual requirement line."""
 
         option = None
-        option_matcher = re.match(r"(-[\w-]+)(.*)", requirement)
-        if option_matcher:
-            option = option_matcher.group(1)
-            requirement = option_matcher.group(2).lstrip()
+        option_match = cls._requirement_match_option(requirement)
+        if option_match is not None:
+            option = option_match.group(1)
+            requirement = option_match.group(2).lstrip()
 
         if option in ("-e", "--editable"):
             # We do not care about installation mode.
@@ -449,8 +466,31 @@ class Flake8Checker(object):
             # Skip whole line if option was not processed earlier.
             return []
 
-        # Extract requirement name (skip comments, options, etc.).
-        return [re.split(r"[^\w.-]+", requirement, 1)[0]]
+        # Check for a requirement given as a VSC link.
+        vcs_match = cls._requirement_match_vcs(requirement)
+        vcs_spec_match = cls._requirement_match_vcs_spec(
+            vcs_match.group(2) if vcs_match is not None else "")
+        if vcs_spec_match is not None:
+            return [vcs_spec_match.group(1)]
+
+        # Check for a requirement given as a local archive file.
+        archive_ext_match = cls._requirement_match_archive(requirement)
+        if archive_ext_match is not None:
+            base = os.path.basename(archive_ext_match.group(1))
+            archive_spec_match = cls._requirement_match_archive_spec(base)
+            if archive_spec_match is not None:
+                name, version = archive_spec_match.groups()
+                return [
+                    name if not version else
+                    "{} == {}".format(name, version[1:])
+                ]
+
+        # Extract requirement specifier (skip in-line options).
+        spec_match = cls._requirement_match_spec(requirement)
+        if spec_match is not None:
+            requirement = spec_match.group(1)
+
+        return [requirement.strip()]
 
     @classmethod
     @memoize

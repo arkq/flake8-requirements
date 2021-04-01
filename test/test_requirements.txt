@@ -1,0 +1,27 @@
+####### requirements.txt #######
+
+###### Requirements without Version Specifiers ######
+nose
+
+###### Requirements with Version Specifiers ######
+apache == 0.6.9              # Version Matching. Must be version 0.6.9
+coverage[test, graph] ~= 3.1 # Compatible release. Same as >= 3.1, == 3.*
+graph >=1.2, <2.0 ; python_version < '3.8'
+
+###### Global options ######
+--find-links http://some.archives.com/archives
+--no-index
+
+###### Requirements with in-line options ######
+foo-project >= 1.2 --install-option="--prefix=/usr/local --no-compile"
+bar-project == 8.8 --hash=sha256:cecb534b7d0022683d030b048a2d679c6ff3df969fd7b847027f1ed8d739ac8c \
+                   --hash=md5:a540092b44178949e8d63ddd7a74f95d
+
+###### Requirements from a particular file ######
+/opt/configuration.tar.gz                # Local configuration
+/opt/blackBox-1.4.4-cp34-none-win32.whl  # Local proprietary package
+http://example.com/snapshot-builds/exPackage_paint-1.4.8.dev1984+49a8814-cp34-none-win_amd64.whl
+
+###### Requirements from a VCS ######
+git+git://github.com/path/to/package-one@releases/tag/v3.1.4#egg=package-one
+git+git://github.com/path/to/package-two@master#egg=package-two&subdirectory=src
