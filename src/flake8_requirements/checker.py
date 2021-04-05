@@ -445,7 +445,9 @@ class Flake8Checker(object):
             option = option_match.group(1)
             requirement = option_match.group(2).lstrip()
 
+        editable = False
         if option in ("-e", "--editable"):
+            editable = True
             # We do not care about installation mode.
             option = None
 
@@ -466,7 +468,7 @@ class Flake8Checker(object):
             # Skip whole line if option was not processed earlier.
             return []
 
-        # Check for a requirement given as a VSC link.
+        # Check for a requirement given as a VCS link.
         vcs_match = cls._requirement_match_vcs(requirement)
         vcs_spec_match = cls._requirement_match_vcs_spec(
             vcs_match.group(2) if vcs_match is not None else "")
@@ -484,6 +486,14 @@ class Flake8Checker(object):
                     name if not version else
                     "{} == {}".format(name, version[1:])
                 ]
+
+        # Editable installation is made either from local path or from VCS
+        # URL. In case of VCS, the URL should be already handled in the if
+        # block above. Here we shall get a local project path.
+        if editable:
+            requirement = os.path.basename(requirement)
+            if requirement.split()[0] == ".":
+                requirement = ""
 
         # Extract requirement specifier (skip in-line options).
         spec_match = cls._requirement_match_spec(requirement)

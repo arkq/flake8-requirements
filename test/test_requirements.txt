@@ -25,3 +25,9 @@ http://example.com/snapshot-builds/exPackage_paint-1.4.8.dev1984+49a8814-cp34-no
 ###### Requirements from a VCS ######
 git+git://github.com/path/to/package-one@releases/tag/v3.1.4#egg=package-one
 git+git://github.com/path/to/package-two@master#egg=package-two&subdirectory=src
+
+###### Install local project in a develop mode ######
+--editable /opt/whiteBox  # Local proprietary package
+
+###### Install THIS project in a develop mode ######
+--editable .

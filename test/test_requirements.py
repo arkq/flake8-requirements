@@ -223,5 +223,6 @@ class RequirementsTestCase(unittest.TestCase):
                     "exPackage_paint == 1.4.8.dev1984+49a8814",
                     "package-one",
                     "package-two",
+                    "whiteBox",
                 ])),
             )
