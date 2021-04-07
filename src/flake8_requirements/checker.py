@@ -53,13 +53,6 @@ def modsplit(module):
     return tuple(module.split("."))
 
 
-def modcmp(lib=(), test=()):
-    """Compare import modules."""
-    if len(lib) > len(test):
-        return False
-    return all(a == b for a, b in zip(lib, test))
-
-
 def project2module(project):
     """Convert project name into a module name."""
     # Name unification in accordance with PEP 426.
@@ -91,7 +84,7 @@ class ImportVisitor(ast.NodeVisitor):
     """Import statement visitor."""
 
     # Convenience structure for storing import statement.
-    Import = namedtuple('Import', ('line', 'offset', 'mod', 'alt'))
+    Import = namedtuple('Import', ('line', 'offset', 'module'))
 
     def __init__(self, tree):
         """Initialize import statement visitor."""
@@ -102,8 +95,7 @@ class ImportVisitor(ast.NodeVisitor):
         self.imports.append(ImportVisitor.Import(
             node.lineno,
             node.col_offset,
-            node.names[0].name,
-            node.names[0].name,
+            modsplit(node.names[0].name),
         ))
 
     def visit_ImportFrom(self, node):
@@ -113,10 +105,9 @@ class ImportVisitor(ast.NodeVisitor):
         self.imports.append(ImportVisitor.Import(
             node.lineno,
             node.col_offset,
-            node.module,
-            # Alternative module name which covers:
+            # Module name which covers:
             # > from namespace import module
-            ".".join((node.module, node.names[0].name)),
+            modsplit(node.module) + modsplit(node.names[0].name),
         ))
 
 
@@ -275,6 +266,26 @@ class SetupVisitor(ast.NodeVisitor):
         # Redirect call to our setup() tap function.
         node.func = ast.Name(id='__f8r_setup', ctx=node.func.ctx)
         self.redirected = True
+
+
+class ModuleSet(dict):
+    """Radix-tree-like structure for modules lookup."""
+
+    requirement = None
+
+    def add(self, module, requirement):
+        for mod in module:
+            self = self.setdefault(mod, ModuleSet())
+        self.requirement = requirement
+
+    def __contains__(self, module):
+        for mod in module:
+            self = self.get(mod)
+            if self is None:
+                return False
+            if self.requirement is not None:
+                return True
+        return False
 
 
 class Flake8Checker(object):
@@ -547,7 +558,7 @@ class Flake8Checker(object):
     @classmethod
     @memoize
     def get_mods_1st_party(cls):
-        mods_1st_party = set()
+        mods_1st_party = ModuleSet()
         # Get 1st party modules (used for absolute imports).
         modules = [project2module(
             cls.get_setup_py().keywords.get('name') or
@@ -555,7 +566,8 @@ class Flake8Checker(object):
             "")]
         if modules[0] in cls.known_modules:
             modules = cls.known_modules[modules[0]]
-        mods_1st_party.update(modsplit(x) for x in modules)
+        for module in modules:
+            mods_1st_party.add(modsplit(module), True)
         return mods_1st_party
 
     def get_mods_3rd_party_requirements(self):
@@ -590,18 +602,18 @@ class Flake8Checker(object):
 
     @memoize
     def get_mods_3rd_party(self):
-        mods_3rd_party = set()
+        mods_3rd_party = ModuleSet()
         # Get 3rd party module names based on requirements.
         for requirement in self.get_mods_3rd_party_requirements():
             modules = [project2module(requirement.project_name)]
             if modules[0] in self.known_3rd_parties:
                 modules = self.known_3rd_parties[modules[0]]
-            if modules[0] in self.known_host_3rd_parties:
+            elif modules[0] in self.known_host_3rd_parties:
                 modules = self.known_host_3rd_parties[modules[0]]
-            if modules[0] in self.known_modules:
+            elif modules[0] in self.known_modules:
                 modules = self.known_modules[modules[0]]
-            mods_3rd_party.update(modsplit(x) for x in modules)
-
+            for module in modules:
+                mods_3rd_party.add(modsplit(module), requirement)
         return mods_3rd_party
 
     @property
@@ -612,33 +624,35 @@ class Flake8Checker(object):
         except OSError:
             return False
 
-    def run(self):
-        """Run checker."""
-        mods_1st_party = self.get_mods_1st_party()
-        mods_3rd_party = self.get_mods_3rd_party()
-
+    def check_I900(self, node):
+        """Run missing requirement checker."""
+        if node.module[0] in STDLIB:
+            return
+        if node.module in self.get_mods_3rd_party():
+            return
+        if node.module in self.get_mods_1st_party():
+            return
         # When processing setup.py file, forcefully add setuptools to the
         # project requirements. Setuptools might be required to build the
         # project, even though it is not listed as a requirement - this
         # package is required to run setup.py, so listing it as a setup
         # requirement would be pointless.
-        if self.processing_setup_py:
-            mods_3rd_party.add(modsplit("setuptools"))
+        if (self.processing_setup_py and
+                node.module[0] in KNOWN_3RD_PARTIES["setuptools"]):
+            return
+        return ERRORS['I900'].format(pkg=node.module[0])
+
+    def check_I901(self, node):
+        """Run not-used requirement checker."""
+        return
+
+    def run(self):
+        """Run checker."""
+
+        checkers = []
+        checkers.append(self.check_I900)
+        checkers.append(self.check_I901)
 
         for node in ImportVisitor(self.tree).imports:
-            _mod = modsplit(node.mod)
-            _alt = modsplit(node.alt)
-            if _mod[0] in STDLIB:
-                continue
-            if any([modcmp(x, _mod) or modcmp(x, _alt)
-                    for x in mods_1st_party]):
-                continue
-            if any([modcmp(x, _mod) or modcmp(x, _alt)
-                    for x in mods_3rd_party]):
-                continue
-            yield (
-                node.line,
-                node.offset,
-                ERRORS['I900'].format(pkg=node.mod),
-                Flake8Checker,
-            )
+            for err in filter(None, map(lambda c: c(node), checkers)):
+                yield (node.line, node.offset, err, Flake8Checker)

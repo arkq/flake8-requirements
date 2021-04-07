@@ -28,8 +28,8 @@ setup(
     packages=["flake8_requirements"],
     install_requires=[
         "flake8 >= 2.0.0",
-        "setuptools",
-        "toml",
+        "setuptools >= 10.0.0",
+        "toml >= 0.7.0",
     ],
     setup_requires=["pytest-runner"],
     tests_require=["mock", "pytest"],

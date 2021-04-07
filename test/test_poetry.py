@@ -1,6 +1,7 @@
 import unittest
 
 from flake8_requirements.checker import Flake8Checker
+from flake8_requirements.checker import ModuleSet
 from flake8_requirements.checker import memoize
 
 try:
@@ -33,7 +34,7 @@ class PoetryTestCase(unittest.TestCase):
 
             checker = Flake8Checker(None, None)
             mods = checker.get_mods_1st_party()
-            self.assertEqual(mods, set([("book",)]))
+            self.assertEqual(mods, ModuleSet({"book": {}}))
 
     def test_3rd_party(self):
         content = "[tool.poetry.dependencies]\ntools='1.0'\n"
@@ -47,4 +48,4 @@ class PoetryTestCase(unittest.TestCase):
 
             checker = Flake8Checker(None, None)
             mods = checker.get_mods_3rd_party()
-            self.assertEqual(mods, set([("tools",), ("dev_tools",)]))
+            self.assertEqual(mods, ModuleSet({"tools": {}, "dev_tools": {}}))
