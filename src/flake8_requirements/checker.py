@@ -4,6 +4,7 @@ import re
 import site
 import sys
 from collections import namedtuple
+from configparser import ConfigParser
 from functools import wraps
 from logging import getLogger
 
@@ -17,7 +18,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.4.0"
+__version__ = "1.5.0"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -530,6 +531,16 @@ class Flake8Checker(object):
         cfg_pep518 = cls.get_pyproject_toml()
         return cfg_pep518.get('tool', {}).get('poetry', {})
 
+    def get_pyproject_toml_poetry_requirements(self):
+        """Try to get poetry configuration requirements."""
+        poetry = self.get_pyproject_toml_poetry()
+        requirements = []
+        requirements.extend(parse_requirements(
+            poetry.get('dependencies', ())))
+        requirements.extend(parse_requirements(
+            poetry.get('dev-dependencies', ())))
+        return requirements
+
     @classmethod
     @memoize
     def get_requirements_txt(cls):
@@ -546,6 +557,38 @@ class Flake8Checker(object):
 
     @classmethod
     @memoize
+    def get_setup_cfg(cls):
+        """Try to load standard configuration file."""
+        config = ConfigParser()
+        config.read_dict({
+            'metadata': {'name': ""},
+            'options': {
+                'install_requires': "",
+                'setup_requires': "",
+                'tests_require': ""},
+            'options.extras_require': {},
+        })
+        if not config.read(os.path.join(cls.root_dir, "setup.cfg")):
+            LOG.debug("Couldn't load setup configuration: setup.cfg")
+        return config
+
+    def get_setup_cfg_requirements(self):
+        """Try to load standard configuration file requirements."""
+        config = self.get_setup_cfg()
+        requirements = []
+        requirements.extend(parse_requirements(
+            config.get('options', 'install_requires')))
+        requirements.extend(parse_requirements(
+            config.get('options', 'tests_require')))
+        for _, r in config.items('options.extras_require'):
+            requirements.extend(parse_requirements(r))
+        setup_requires = config.get('options', 'setup_requires')
+        if setup_requires and self.processing_setup_py:
+            requirements.extend(parse_requirements(setup_requires))
+        return requirements
+
+    @classmethod
+    @memoize
     def get_setup_py(cls):
         """Try to load standard setup file."""
         try:
@@ -555,6 +598,16 @@ class Flake8Checker(object):
             LOG.debug("Couldn't load project setup: %s", e)
             return SetupVisitor(ast.parse(""), cls.root_dir)
 
+    def get_setup_py_requirements(self):
+        """Try to load standard setup file requirements."""
+        setup = self.get_setup_py()
+        if not setup.redirected:
+            return []
+        return setup.get_requirements(
+            setup=self.processing_setup_py,
+            tests=True,
+        )
+
     @classmethod
     @memoize
     def get_mods_1st_party(cls):
@@ -562,6 +615,7 @@ class Flake8Checker(object):
         # Get 1st party modules (used for absolute imports).
         modules = [project2module(
             cls.get_setup_py().keywords.get('name') or
+            cls.get_setup_cfg().get('metadata', 'name') or
             cls.get_pyproject_toml_poetry().get('name') or
             "")]
         if modules[0] in cls.known_modules:
@@ -572,33 +626,19 @@ class Flake8Checker(object):
 
     def get_mods_3rd_party_requirements(self):
         """Get list of 3rd party requirements."""
-
         # Use user provided requirements text file.
         if self.requirements_file:
             return self.get_requirements_txt()
-
-        # Use requirements from setup if available.
-        cfg_setup = self.get_setup_py()
-        if cfg_setup.redirected:
-            return cfg_setup.get_requirements(
-                setup=self.processing_setup_py,
-                tests=True,
-            )
-
-        # Check project configuration for requirements.
-        cfg_poetry = self.get_pyproject_toml_poetry()
-        if cfg_poetry:
-            requirements = []
-            requirements.extend(parse_requirements(
-                cfg_poetry.get('dependencies', ()),
-            ))
-            requirements.extend(parse_requirements(
-                cfg_poetry.get('dev-dependencies', ()),
-            ))
-            return requirements
-
-        # Fall-back to requirements.txt in the root directory.
-        return self.get_requirements_txt()
+        return (
+            # Use requirements from setup if available.
+            self.get_setup_py_requirements() or
+            # Check setup configuration file for requirements.
+            self.get_setup_cfg_requirements() or
+            # Check project configuration for requirements.
+            self.get_pyproject_toml_poetry_requirements() or
+            # Fall-back to requirements.txt in our root directory.
+            self.get_requirements_txt()
+        )
 
     @memoize
     def get_mods_3rd_party(self):

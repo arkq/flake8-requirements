@@ -1,12 +1,21 @@
 import ast
+import os
 import unittest
 
 from pkg_resources import parse_requirements
 
+from flake8_requirements.checker import Flake8Checker
 from flake8_requirements.checker import SetupVisitor
 
+try:
+    from unittest import mock
+    builtins_open = 'builtins.open'
+except ImportError:
+    import mock
+    builtins_open = '__builtin__.open'
 
-class Flake8CheckerTestCase(unittest.TestCase):
+
+class SetupTestCase(unittest.TestCase):
 
     def test_detect_setup(self):
         code = "setup({})".format(",".join((
@@ -65,3 +74,20 @@ class Flake8CheckerTestCase(unittest.TestCase):
                 "extra < 10",
             ]), key=lambda x: x.project_name),
         )
+
+    def test_get_setup_cfg_requirements(self):
+        curdir = os.path.abspath(os.path.dirname(__file__))
+        with open(os.path.join(curdir, "test_setup.cfg")) as f:
+            content = f.read()
+        with mock.patch(builtins_open, mock.mock_open(read_data=content)):
+            checker = Flake8Checker(None, None)
+            self.assertEqual(
+                checker.get_setup_cfg_requirements(),
+                list(parse_requirements([
+                    "requests",
+                    "importlib; python_version == \"2.6\"",
+                    "pytest",
+                    "ReportLab>=1.2",
+                    "docutils>=0.3",
+                ])),
+            )

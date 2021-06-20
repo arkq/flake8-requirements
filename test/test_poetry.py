@@ -29,6 +29,7 @@ class PoetryTestCase(unittest.TestCase):
         with mock.patch(builtins_open, mock.mock_open()) as m:
             m.side_effect = (
                 IOError("No such file or directory: 'setup.py'"),
+                IOError("No such file or directory: 'setup.cfg'"),
                 mock.mock_open(read_data=content).return_value,
             )
 
@@ -43,6 +44,7 @@ class PoetryTestCase(unittest.TestCase):
         with mock.patch(builtins_open, mock.mock_open()) as m:
             m.side_effect = (
                 IOError("No such file or directory: 'setup.py'"),
+                IOError("No such file or directory: 'setup.cfg'"),
                 mock.mock_open(read_data=content).return_value,
             )
 
