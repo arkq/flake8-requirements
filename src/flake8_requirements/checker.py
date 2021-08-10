@@ -18,7 +18,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.5.0"
+__version__ = "1.5.1"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -346,8 +346,8 @@ class Flake8Checker(object):
                 "Specify the name (location) of the requirements text file. "
                 "Unless an absolute path is given, the file will be searched "
                 "relative to the project's root directory. If this option is "
-                "given, requirements from setup.py or pyproject.toml will not"
-                " be taken into account."
+                "given, requirements from setup.py, setup.cfg or "
+                "pyproject.toml will not be taken into account."
             ),
             **kw
         )
@@ -466,8 +466,11 @@ class Flake8Checker(object):
         if option in ("-r", "--requirement"):
             # Error out if we need to recurse deeper than allowed.
             if max_depth <= 0:
-                msg = "Cannot resolve {}: beyond max depth"
-                raise RuntimeError(msg.format(requirement))
+                msg = (
+                    "Cannot resolve {}: "
+                    "Beyond max depth (--requirements-max-depth={})")
+                raise RuntimeError(msg.format(
+                    requirement, cls.requirements_max_depth))
             resolved = []
             # Error out if requirements file cannot be opened.
             with open(os.path.join(path or cls.root_dir, requirement)) as f:
