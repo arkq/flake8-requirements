@@ -320,14 +320,12 @@ STDLIB_PY3 = (
     "concurrent",
     "configparser",
     "contextlib",
-    "contextvars",
     "copy",
     "copyreg",
     "crypt",
     "csv",
     "ctypes",
     "curses",
-    "dataclasses",
     "datetime",
     "dbm",
     "decimal",
@@ -427,7 +425,6 @@ STDLIB_PY3 = (
     "rlcompleter",
     "runpy",
     "sched",
-    "secrets",
     "select",
     "selectors",
     "shelve",
@@ -475,7 +472,6 @@ STDLIB_PY3 = (
     "turtle",
     "turtledemo",
     "types",
-    "typing",
     "unicodedata",
     "unittest",
     "urllib",
@@ -492,10 +488,20 @@ STDLIB_PY3 = (
     "xdrlib",
     "xml",
     "xmlrpc",
-    "zipapp",
     "zipfile",
     "zipimport",
     "zlib",
+    # Modules since Python 3.5
+    "typing",
+    "zipapp",
+    # Modules since Python 3.6
+    "secrets",
+    # Modules since Python 3.7
+    "contextvars",
+    "dataclasses",
+    # Modules since Python 3.9
+    "graphlib",
+    "zoneinfo",
 )
 
 # Mapping for known 3rd party projects, which provide more than one module
