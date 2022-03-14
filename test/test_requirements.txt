@@ -30,4 +30,5 @@ git+git://github.com/path/to/package-two@master#egg=package-two&subdirectory=src
 --editable /opt/whiteBox  # Local proprietary package
 
 ###### Install THIS project in a develop mode ######
+--editable .[foo,bar]
 --editable .

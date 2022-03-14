@@ -18,7 +18,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.5.2"
+__version__ = "1.5.3"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -433,6 +433,9 @@ class Flake8Checker(object):
     _requirement_match_option = re.compile(
         r"(-[\w-]+)(.*)").match
 
+    _requirement_match_extras = re.compile(
+        r"(.*?)\s*(\[[^]]+\])").match
+
     _requirement_match_spec = re.compile(
         r"(.*?)\s+--(global-option|install-option|hash)").match
 
@@ -508,6 +511,11 @@ class Flake8Checker(object):
         if editable:
             requirement = os.path.basename(requirement)
             if requirement.split()[0] == ".":
+                requirement = ""
+            # It seems that the parse_requirements() function does not like
+            # ".[foo,bar]" syntax (current directory with extras).
+            extras_match = cls._requirement_match_extras(requirement)
+            if extras_match is not None and extras_match.group(1) == ".":
                 requirement = ""
 
         # Extract requirement specifier (skip in-line options).
