@@ -656,13 +656,20 @@ class Flake8Checker(object):
         mods_3rd_party = ModuleSet()
         # Get 3rd party module names based on requirements.
         for requirement in self.get_mods_3rd_party_requirements():
+            mod = project2module(requirement.project_name)
             modules = (
-                self.known_3rd_parties.get(modules[0], []) +
-                self.known_host_3rd_parties.get(modules[0], []) +
-                self.known_modules.get(modules[0], [])
+                self.known_3rd_parties.get(mod, []) +
+                self.known_host_3rd_parties.get(mod, []) +
+                self.known_modules.get(mod, [])
             )
             if not modules:
-                modules = [project2module(requirement.project_name)]
+                unknown = (
+                    mod not in self.known_3rd_parties and
+                    mod not in self.known_host_3rd_parties and
+                    mod not in self.known_modules
+                )
+                if unknown:
+                    modules = [mod]
 
             for module in modules:
                 mods_3rd_party.add(modsplit(module), requirement)
