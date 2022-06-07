@@ -545,7 +545,7 @@ KNOWN_3RD_PARTIES = {
     "pyjwt": ["jwt"],
     "pymongo": ["bson", "gridfs", "pymongo"],
     "pyopenssl": ["OpenSSL"],
-    "pytest": ["pytest", "_pytest"]
+    "pytest": ["pytest", "_pytest"],
     "python-dateutil": ["dateutil"],
     "pyyaml": ["yaml"],
     "scikit-learn": ["sklearn"],
