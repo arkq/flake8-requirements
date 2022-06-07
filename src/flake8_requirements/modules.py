@@ -511,9 +511,11 @@ KNOWN_3RD_PARTIES = {
     #       but it depends on allure-python-commons which provides it. User
     #       will most likely specify allure-pytest as a dependency, though.
     "allure-pytest": ["allure"],
-    "attrs": ["attr"],
+    "attrs": ["attr", "attrs"],
     "awesome_slugify": ["slugify"],
+    "azure-storage-blob": ["azure"],
     "beautifulsoup4": ["bs4"],
+    "cattrs": ["cattr"],
     "cx_oracle": ["cx_Oracle"],
     "databricks-connect": ["pyspark"],
     "django-ajax-selects": ["ajax_select"],
@@ -543,12 +545,15 @@ KNOWN_3RD_PARTIES = {
     "pyjwt": ["jwt"],
     "pymongo": ["bson", "gridfs", "pymongo"],
     "pyopenssl": ["OpenSSL"],
+    "pytest": ["pytest", "_pytest"],
     "python-dateutil": ["dateutil"],
     "pyyaml": ["yaml"],
     "scikit-learn": ["sklearn"],
+    "scikit-fda": ["skfda"],
     "setuptools": ["pkg_resources", "setuptools"],
     "sorl-thumbnail": ["sorl"],
     "splunk_sdk": ["splunklib"],
     "tensorboardx": ["tensorboardX"],
+    "umap-learn": ["umap"],
     "xlwt_future": ["xlwt"],
 }
