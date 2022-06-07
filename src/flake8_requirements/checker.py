@@ -18,7 +18,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.5.4"
+__version__ = "1.5.5"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -657,12 +657,12 @@ class Flake8Checker(object):
         # Get 3rd party module names based on requirements.
         for requirement in self.get_mods_3rd_party_requirements():
             modules = [project2module(requirement.project_name)]
-            if modules[0] in self.known_3rd_parties:
+            if modules[0] in self.known_modules:
+                modules = self.known_modules[modules[0]]
+            elif modules[0] in self.known_3rd_parties:
                 modules = self.known_3rd_parties[modules[0]]
             elif modules[0] in self.known_host_3rd_parties:
                 modules = self.known_host_3rd_parties[modules[0]]
-            elif modules[0] in self.known_modules:
-                modules = self.known_modules[modules[0]]
             for module in modules:
                 mods_3rd_party.add(modsplit(module), requirement)
         return mods_3rd_party
