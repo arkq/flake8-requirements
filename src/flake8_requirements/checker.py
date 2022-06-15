@@ -663,7 +663,6 @@ class Flake8Checker(object):
                 modules = self.known_3rd_parties[modules[0]]
             elif modules[0] in self.known_host_3rd_parties:
                 modules = self.known_host_3rd_parties[modules[0]]
-
             for module in modules:
                 mods_3rd_party.add(modsplit(module), requirement)
         return mods_3rd_party
