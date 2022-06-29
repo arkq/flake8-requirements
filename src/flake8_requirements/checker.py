@@ -537,6 +537,22 @@ class Flake8Checker(object):
             return {}
 
     @classmethod
+    def get_pyproject_toml_pep621(cls):
+        """Try to get PEP 621 metadata."""
+        cfg_pep621 = cls.get_pyproject_toml()
+        return cfg_pep621.get('project', {})
+
+    def get_pyproject_toml_pep621_requirements(self):
+        """Try to get PEP 621 metadata requirements."""
+        pep621 = self.get_pyproject_toml_pep621()
+        requirements = []
+        requirements.extend(parse_requirements(
+            pep621.get("dependencies", ())))
+        for r in pep621.get("optional-dependencies", {}).values():
+            requirements.extend(parse_requirements(r))
+        return requirements
+
+    @classmethod
     def get_pyproject_toml_poetry(cls):
         """Try to get poetry configuration."""
         cfg_pep518 = cls.get_pyproject_toml()
@@ -627,6 +643,7 @@ class Flake8Checker(object):
         modules = [project2module(
             cls.get_setup_py().keywords.get('name') or
             cls.get_setup_cfg().get('metadata', 'name') or
+            cls.get_pyproject_toml_pep621().get('name') or
             cls.get_pyproject_toml_poetry().get('name') or
             "")]
         if modules[0] in cls.known_modules:
@@ -645,6 +662,8 @@ class Flake8Checker(object):
             self.get_setup_py_requirements() or
             # Check setup configuration file for requirements.
             self.get_setup_cfg_requirements() or
+            # Check PEP 621 metadata for requirements.
+            self.get_pyproject_toml_pep621_requirements() or
             # Check project configuration for requirements.
             self.get_pyproject_toml_poetry_requirements() or
             # Fall-back to requirements.txt in our root directory.
