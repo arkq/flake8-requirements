@@ -14,16 +14,17 @@ except ImportError:
 
 class Pep621TestCase(unittest.TestCase):
 
+    content = """
+    [project]
+    name="test"
+    dependencies=["tools==1.0"]
+
+    [project.optional-dependencies]
+    dev = ["dev-tools==1.0"]
+    """
+
     def setUp(self):
         memoize.mem = {}
-        self.content = """
-        [project]
-        name="test"
-        dependencies=["tools==1.0"]
-
-        [project.optional-dependencies]
-        dev = ["dev-tools==1.0"]
-        """
 
     def test_get_pyproject_toml_pep621(self):
         with mock.patch(builtins_open, mock.mock_open(read_data=self.content)):
