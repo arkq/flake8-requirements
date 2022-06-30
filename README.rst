@@ -16,6 +16,7 @@ In order to collect project's dependencies, this checker evaluates Python code f
 ``setup.py`` file stored in the project's root directory. Code evaluation is done with the `eval()
 <https://docs.python.org/3/library/functions.html#eval>`_ function. As a fall-back method, this
 checker also tries to load dependencies, in order, from the ``setup.cfg``, the ``pyproject.toml``
+file from the `PEP 621 <https://peps.python.org/pep-0621/>`_ project section, the ``pyproject.toml``
 file from the `poetry <https://python-poetry.org/>`_ tool section, or from the
 ``requirements.txt`` text file in the project's root directory.
 
