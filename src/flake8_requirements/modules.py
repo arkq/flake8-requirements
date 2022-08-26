@@ -625,7 +625,7 @@ KNOWN_3RD_PARTIES = {
     "py-lru-cache": ["lru"],
     "pycrypto": ["Crypto"],
     "pygithub": ["github"],
-    "pygobject": ["gi"],
+    "pygobject": ["gi", "pygtkcompat"],
     "pyhamcrest": ["hamcrest"],
     "pyicu": ["icu"],
     "pyjwt": ["jwt"],
