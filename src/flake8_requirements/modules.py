@@ -577,10 +577,16 @@ KNOWN_3RD_PARTIES = {
     "google-cloud-bigtable": ["google.cloud.bigtable"],
     "google-cloud-datastore": ["google.cloud.datastore"],
     "google-cloud-firestore": ["google.cloud.firestore"],
-    "google-cloud-functions": ["google.cloud.functions_v1", "google.cloud.functions"],
+    "google-cloud-functions": [
+        "google.cloud.functions_v1",
+        "google.cloud.functions",
+    ],
     "google-cloud-iam": ["google.cloud.iam_credentials_v1"],
     "google-cloud-iot": ["google.cloud.iot_v1"],
-    "google-cloud-logging": ["google.cloud.logging_v2", "google.cloud.logging"],
+    "google-cloud-logging": [
+        "google.cloud.logging_v2",
+        "google.cloud.logging",
+    ],
     "google-cloud-pubsub": ["google.cloud.pubsub_v1", "google.cloud.pubsub"],
     "google-cloud-secret-manager": ["google.cloud.secretmanager"],
     "google-cloud-storage": ["google.cloud.storage"],
@@ -602,18 +608,42 @@ KNOWN_3RD_PARTIES = {
     "opencv-python": ["cv2"],
     "opensearch-py": ["opensearchpy"],
     "opentelemetry-api": ["opentelemetry"],
-    "opentelemetry-exporter-otlp-proto-grpc": ["opentelemetry.exporter.otlp.proto.grpc"],
-    "opentelemetry-exporter-otlp-proto-http": ["opentelemetry.exporter.otlp.proto.http"],
-    "opentelemetry-instrumentation-aiohttp-client": ["opentelemetry.instrumentation.aiohttp_client"],
-    "opentelemetry-instrumentation-botocore": ["opentelemetry.instrumentation.botocore"],
-    "opentelemetry-instrumentation-django": ["opentelemetry.instrumentation.django"],
-    "opentelemetry-instrumentation-elasticsearch": ["opentelemetry.instrumentation.elasticsearch"],
-    "opentelemetry-instrumentation-grpc": ["opentelemetry.instrumentation.grpc"],
-    "opentelemetry-instrumentation-httpx": ["opentelemetry.instrumentation.httpx"],
-    "opentelemetry-instrumentation-jinja2": ["opentelemetry.instrumentation.jinja2"],
-    "opentelemetry-instrumentation-psycopg2": ["opentelemetry.instrumentation.psycopg2"],
-    "opentelemetry-instrumentation-pymongo": ["opentelemetry.instrumentation.pymongo"],
-    "opentelemetry-instrumentation-requests": ["opentelemetry.instrumentation.requests"],
+    "opentelemetry-exporter-otlp-proto-grpc": [
+        "opentelemetry.exporter.otlp.proto.grpc"
+    ],
+    "opentelemetry-exporter-otlp-proto-http": [
+        "opentelemetry.exporter.otlp.proto.http"
+    ],
+    "opentelemetry-instrumentation-aiohttp-client": [
+        "opentelemetry.instrumentation.aiohttp_client"
+    ],
+    "opentelemetry-instrumentation-botocore": [
+        "opentelemetry.instrumentation.botocore"
+    ],
+    "opentelemetry-instrumentation-django": [
+        "opentelemetry.instrumentation.django"
+    ],
+    "opentelemetry-instrumentation-elasticsearch": [
+        "opentelemetry.instrumentation.elasticsearch"
+    ],
+    "opentelemetry-instrumentation-grpc": [
+        "opentelemetry.instrumentation.grpc"
+    ],
+    "opentelemetry-instrumentation-httpx": [
+        "opentelemetry.instrumentation.httpx"
+    ],
+    "opentelemetry-instrumentation-jinja2": [
+        "opentelemetry.instrumentation.jinja2"
+    ],
+    "opentelemetry-instrumentation-psycopg2": [
+        "opentelemetry.instrumentation.psycopg2"
+    ],
+    "opentelemetry-instrumentation-pymongo": [
+        "opentelemetry.instrumentation.pymongo"
+    ],
+    "opentelemetry-instrumentation-requests": [
+        "opentelemetry.instrumentation.requests"
+    ],
     "opentelemetry-sdk": ["opentelemetry.sdk"],
     "opentelemetry-test-utils": ["opentelemetry.test"],
     "paho-mqtt": ["paho"],
