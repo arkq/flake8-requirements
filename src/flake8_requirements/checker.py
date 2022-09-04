@@ -18,7 +18,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.6.1"
+__version__ = "1.6.2"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -566,6 +566,10 @@ class Flake8Checker(object):
             poetry.get('dependencies', ())))
         requirements.extend(parse_requirements(
             poetry.get('dev-dependencies', ())))
+        # Collect dependencies from groups (since poetry-1.2).
+        for _, group in poetry.get('group', {}).items():
+            requirements.extend(parse_requirements(
+                group.get('dependencies', ())))
         return requirements
 
     @classmethod

@@ -51,3 +51,18 @@ class PoetryTestCase(unittest.TestCase):
             checker = Flake8Checker(None, None)
             mods = checker.get_mods_3rd_party()
             self.assertEqual(mods, ModuleSet({"tools": {}, "dev_tools": {}}))
+
+    def test_3rd_party_groups(self):
+        content = "[tool.poetry.dependencies]\ntools='1.0'\n"
+        content += "[tool.poetry.group.dev.dependencies]\ndev-tools='1.0'\n"
+
+        with mock.patch(builtins_open, mock.mock_open()) as m:
+            m.side_effect = (
+                IOError("No such file or directory: 'setup.py'"),
+                IOError("No such file or directory: 'setup.cfg'"),
+                mock.mock_open(read_data=content).return_value,
+            )
+
+            checker = Flake8Checker(None, None)
+            mods = checker.get_mods_3rd_party()
+            self.assertEqual(mods, ModuleSet({"tools": {}, "dev_tools": {}}))
