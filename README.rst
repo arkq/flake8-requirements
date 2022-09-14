@@ -64,6 +64,17 @@ Real life example::
   max-line-length = 100
   known-modules = my-lib:[mylib.drm,mylib.encryption]
 
+If you use `flake8-pyproject <https://pypi.org/project/Flake8-pyproject/>`_, you can also configure
+the known modules using a nicer syntax::
+
+  $ cat pyproject.toml
+  ...
+  [tool.flake8]
+  max-line-length = 100
+
+  [tool.flake8.known-modules]
+  my-lib = ["mylib.drm", "mylib.encryption"]
+
 It is also possible to scan host's site-packages directory for installed packages. This feature is
 disabled by default, but user can enable it with the ``--scan-host-site-packages`` command line
 option. Please note, however, that the location of the site-packages directory will be determined
