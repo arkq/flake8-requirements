@@ -18,7 +18,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.6.2"
+__version__ = "1.7.0"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -375,13 +375,19 @@ class Flake8Checker(object):
     @classmethod
     def parse_options(cls, options):
         """Parse plug-in specific options."""
-        cls.known_modules = {
-            project2module(k): v.split(",")
-            for k, v in [
-                x.split(":[")
-                for x in re.split(r"],?", options.known_modules)[:-1]
-            ]
-        }
+        if isinstance(options.known_modules, dict):
+            # Support for nicer known-modules using flake8-pyproject.
+            cls.known_modules = {
+                project2module(k): v for k, v in options.known_modules.items()
+            }
+        else:
+            cls.known_modules = {
+                project2module(k): v.split(",")
+                for k, v in [
+                    x.split(":[")
+                    for x in re.split(r"],?", options.known_modules)[:-1]
+                ]
+            }
         cls.requirements_file = options.requirements_file
         cls.requirements_max_depth = options.requirements_max_depth
         if options.scan_host_site_packages:

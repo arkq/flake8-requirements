@@ -12,6 +12,13 @@ except ImportError:
     builtins_open = '__builtin__.open'
 
 
+class Flake8Options:
+    known_modules = ""
+    requirements_file = None
+    requirements_max_depth = 1
+    scan_host_site_packages = False
+
+
 class Pep621TestCase(unittest.TestCase):
 
     content = """
@@ -25,6 +32,18 @@ class Pep621TestCase(unittest.TestCase):
 
     def setUp(self):
         memoize.mem = {}
+
+    def tearDown(self):
+        Flake8Checker.root_dir = ""
+
+    def test_pyproject_custom_mapping_parser(self):
+        class Options(Flake8Options):
+            known_modules = {"mylib": ["mylib.drm", "mylib.ex"]}
+        Flake8Checker.parse_options(Options)
+        self.assertEqual(
+            Flake8Checker.known_modules,
+            {"mylib": ["mylib.drm", "mylib.ex"]},
+        )
 
     def test_get_pyproject_toml_pep621(self):
         with mock.patch(builtins_open, mock.mock_open(read_data=self.content)):
