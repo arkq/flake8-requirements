@@ -75,6 +75,9 @@ the known modules using a nicer syntax::
   [tool.flake8.known-modules]
   my-lib = ["mylib.drm", "mylib.encryption"]
 
+Note that if the module's name contains dots, you have to quote it in pyproject.toml (e.g.
+``"my_namespace.my_lib" = [...]``).
+
 It is also possible to scan host's site-packages directory for installed packages. This feature is
 disabled by default, but user can enable it with the ``--scan-host-site-packages`` command line
 option. Please note, however, that the location of the site-packages directory will be determined
