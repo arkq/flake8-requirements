@@ -18,7 +18,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.7.0"
+__version__ = "1.7.1"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -353,7 +353,7 @@ class Flake8Checker(object):
         )
         manager.add_option(
             "--requirements-max-depth",
-            type="int",
+            type=int if flake8.__version__ >= '3.8.0' else 'int',
             default=1,
             help=(
                 "Max depth to resolve recursive requirements. Defaults to 1 "
