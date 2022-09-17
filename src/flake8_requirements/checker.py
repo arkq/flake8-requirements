@@ -391,11 +391,11 @@ class Flake8Checker(object):
         cls.requirements_file = options.requirements_file
         cls.requirements_max_depth = options.requirements_max_depth
         if options.scan_host_site_packages:
-            cls.discover_host_3rd_party_modules()
-        cls.discover_project_root_dir()
+            cls.known_host_3rd_parties = cls.discover_host_3rd_party_modules()
+        cls.root_dir = cls.discover_project_root_dir(os.getcwd())
 
-    @classmethod
-    def discover_host_3rd_party_modules(cls):
+    @staticmethod
+    def discover_host_3rd_party_modules():
         """Scan host site-packages for 3rd party modules."""
         try:
             site_packages_dirs = site.getsitepackagess()
@@ -403,6 +403,7 @@ class Flake8Checker(object):
         except AttributeError as e:
             LOG.error("Couldn't get site packages: %s", e)
             return
+        mapping = {}
         for site_dir in site_packages_dirs:
             try:
                 dir_entries = os.listdir(site_dir)
@@ -421,20 +422,20 @@ class Flake8Checker(object):
                     ), "")
                 with open(modules_path) as f:
                     modules = list(yield_lines(f.readlines()))
-                cls.known_host_3rd_parties[project2module(name)] = modules
+                mapping[project2module(name)] = modules
+            return mapping
 
-    @classmethod
-    def discover_project_root_dir(cls):
-        """Discover project's root directory."""
-        root_dir = os.getcwd()
+    @staticmethod
+    def discover_project_root_dir(path):
+        """Discover project's root directory starting from given path."""
         root_files = ["pyproject.toml", "requirements.txt", "setup.py"]
-        while root_dir != os.path.abspath(os.sep):
-            paths = [os.path.join(root_dir, x) for x in root_files]
+        while path != os.path.abspath(os.sep):
+            paths = [os.path.join(path, x) for x in root_files]
             if any(map(os.path.exists, paths)):
-                LOG.info("Discovered root directory: %s", root_dir)
-                cls.root_dir = root_dir
-                break
-            root_dir = os.path.abspath(os.path.join(root_dir, ".."))
+                LOG.info("Discovered root directory: %s", path)
+                return path
+            path = os.path.abspath(os.path.join(path, ".."))
+        return ""
 
     _requirement_match_option = re.compile(
         r"(-[\w-]+)(.*)").match
