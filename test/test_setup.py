@@ -82,7 +82,7 @@ class SetupTestCase(unittest.TestCase):
         with mock.patch(builtins_open, mock.mock_open(read_data=content)):
             checker = Flake8Checker(None, None)
             self.assertEqual(
-                checker.get_setup_cfg_requirements(),
+                checker.get_setup_cfg_requirements(False),
                 list(parse_requirements([
                     "requests",
                     "importlib; python_version == \"2.6\"",

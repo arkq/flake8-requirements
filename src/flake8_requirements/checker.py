@@ -39,9 +39,10 @@ def memoize(f):
     """Cache value returned by the function."""
     @wraps(f)
     def w(*args, **kw):
-        if f not in memoize.mem:
-            memoize.mem[f] = f(*args, **kw)
-        return memoize.mem[f]
+        k = (f, repr(args), repr(kw))
+        if k not in memoize.mem:
+            memoize.mem[k] = f(*args, **kw)
+        return memoize.mem[k]
     return w
 
 
@@ -437,6 +438,15 @@ class Flake8Checker(object):
             path = os.path.abspath(os.path.join(path, ".."))
         return ""
 
+    @staticmethod
+    def is_project_setup_py(project_root_dir, filename):
+        """Determine whether given file is project's setup.py file."""
+        project_setup_py = os.path.join(project_root_dir, "setup.py")
+        try:
+            return os.path.samefile(filename, project_setup_py)
+        except OSError:
+            return False
+
     _requirement_match_option = re.compile(
         r"(-[\w-]+)(.*)").match
 
@@ -549,9 +559,10 @@ class Flake8Checker(object):
         cfg_pep518 = cls.get_pyproject_toml()
         return cfg_pep518.get('project', {})
 
-    def get_pyproject_toml_pep621_requirements(self):
+    @classmethod
+    def get_pyproject_toml_pep621_requirements(cls):
         """Try to get PEP 621 metadata requirements."""
-        pep621 = self.get_pyproject_toml_pep621()
+        pep621 = cls.get_pyproject_toml_pep621()
         requirements = []
         requirements.extend(parse_requirements(
             pep621.get("dependencies", ())))
@@ -565,9 +576,10 @@ class Flake8Checker(object):
         cfg_pep518 = cls.get_pyproject_toml()
         return cfg_pep518.get('tool', {}).get('poetry', {})
 
-    def get_pyproject_toml_poetry_requirements(self):
+    @classmethod
+    def get_pyproject_toml_poetry_requirements(cls):
         """Try to get poetry configuration requirements."""
-        poetry = self.get_pyproject_toml_poetry()
+        poetry = cls.get_pyproject_toml_poetry()
         requirements = []
         requirements.extend(parse_requirements(
             poetry.get('dependencies', ())))
@@ -580,7 +592,6 @@ class Flake8Checker(object):
         return requirements
 
     @classmethod
-    @memoize
     def get_requirements_txt(cls):
         """Try to load requirements from text file."""
         path = cls.requirements_file or "requirements.txt"
@@ -610,9 +621,10 @@ class Flake8Checker(object):
             LOG.debug("Couldn't load setup configuration: setup.cfg")
         return config
 
-    def get_setup_cfg_requirements(self):
+    @classmethod
+    def get_setup_cfg_requirements(cls, is_setup_py):
         """Try to load standard configuration file requirements."""
-        config = self.get_setup_cfg()
+        config = cls.get_setup_cfg()
         requirements = []
         requirements.extend(parse_requirements(
             config.get('options', 'install_requires')))
@@ -621,7 +633,7 @@ class Flake8Checker(object):
         for _, r in config.items('options.extras_require'):
             requirements.extend(parse_requirements(r))
         setup_requires = config.get('options', 'setup_requires')
-        if setup_requires and self.processing_setup_py:
+        if setup_requires and is_setup_py:
             requirements.extend(parse_requirements(setup_requires))
         return requirements
 
@@ -636,13 +648,14 @@ class Flake8Checker(object):
             LOG.debug("Couldn't load project setup: %s", e)
             return SetupVisitor(ast.parse(""), cls.root_dir)
 
-    def get_setup_py_requirements(self):
+    @classmethod
+    def get_setup_py_requirements(cls, is_setup_py):
         """Try to load standard setup file requirements."""
-        setup = self.get_setup_py()
+        setup = cls.get_setup_py()
         if not setup.redirected:
             return []
         return setup.get_requirements(
-            setup=self.processing_setup_py,
+            setup=is_setup_py,
             tests=True,
         )
 
@@ -663,53 +676,48 @@ class Flake8Checker(object):
             mods_1st_party.add(modsplit(module), True)
         return mods_1st_party
 
-    def get_mods_3rd_party_requirements(self):
-        """Get list of 3rd party requirements."""
-        # Use user provided requirements text file.
-        if self.requirements_file:
-            return self.get_requirements_txt()
-        return (
-            # Use requirements from setup if available.
-            self.get_setup_py_requirements() or
-            # Check setup configuration file for requirements.
-            self.get_setup_cfg_requirements() or
-            # Check PEP 621 metadata for requirements.
-            self.get_pyproject_toml_pep621_requirements() or
-            # Check project configuration for requirements.
-            self.get_pyproject_toml_poetry_requirements() or
-            # Fall-back to requirements.txt in our root directory.
-            self.get_requirements_txt()
-        )
-
+    @classmethod
     @memoize
-    def get_mods_3rd_party(self):
+    def get_mods_3rd_party(cls, is_setup_py):
         mods_3rd_party = ModuleSet()
         # Get 3rd party module names based on requirements.
-        for requirement in self.get_mods_3rd_party_requirements():
+        for requirement in cls.get_mods_3rd_party_requirements(is_setup_py):
             modules = [project2module(requirement.project_name)]
-            if modules[0] in self.known_modules:
-                modules = self.known_modules[modules[0]]
-            elif modules[0] in self.known_3rd_parties:
-                modules = self.known_3rd_parties[modules[0]]
-            elif modules[0] in self.known_host_3rd_parties:
-                modules = self.known_host_3rd_parties[modules[0]]
+            if modules[0] in cls.known_modules:
+                modules = cls.known_modules[modules[0]]
+            elif modules[0] in cls.known_3rd_parties:
+                modules = cls.known_3rd_parties[modules[0]]
+            elif modules[0] in cls.known_host_3rd_parties:
+                modules = cls.known_host_3rd_parties[modules[0]]
             for module in modules:
                 mods_3rd_party.add(modsplit(module), requirement)
         return mods_3rd_party
 
-    @property
-    def processing_setup_py(self):
-        """Determine whether we are processing setup.py file."""
-        try:
-            return os.path.samefile(self.filename, "setup.py")
-        except OSError:
-            return False
+    @classmethod
+    def get_mods_3rd_party_requirements(cls, is_setup_py):
+        """Get list of 3rd party requirements."""
+        # Use user provided requirements text file.
+        if cls.requirements_file:
+            return cls.get_requirements_txt()
+        return (
+            # Use requirements from setup if available.
+            cls.get_setup_py_requirements(is_setup_py) or
+            # Check setup configuration file for requirements.
+            cls.get_setup_cfg_requirements(is_setup_py) or
+            # Check PEP 621 metadata for requirements.
+            cls.get_pyproject_toml_pep621_requirements() or
+            # Check project configuration for requirements.
+            cls.get_pyproject_toml_poetry_requirements() or
+            # Fall-back to requirements.txt in our root directory.
+            cls.get_requirements_txt()
+        )
 
     def check_I900(self, node):
         """Run missing requirement checker."""
         if node.module[0] in STDLIB:
             return
-        if node.module in self.get_mods_3rd_party():
+        is_setup_py = self.is_project_setup_py(self.root_dir, self.filename)
+        if node.module in self.get_mods_3rd_party(is_setup_py):
             return
         if node.module in self.get_mods_1st_party():
             return
@@ -718,7 +726,7 @@ class Flake8Checker(object):
         # project, even though it is not listed as a requirement - this
         # package is required to run setup.py, so listing it as a setup
         # requirement would be pointless.
-        if (self.processing_setup_py and
+        if (is_setup_py and
                 node.module[0] in KNOWN_3RD_PARTIES["setuptools"]):
             return
         return ERRORS['I900'].format(pkg=node.module[0])

@@ -78,5 +78,5 @@ class Pep621TestCase(unittest.TestCase):
             )
 
             checker = Flake8Checker(None, None)
-            mods = checker.get_mods_3rd_party()
+            mods = checker.get_mods_3rd_party(False)
             self.assertEqual(mods, ModuleSet({"tools": {}, "dev_tools": {}}))
