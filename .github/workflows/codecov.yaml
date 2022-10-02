@@ -1,0 +1,20 @@
+name: Code Coverage
+on:
+  push:
+  pull_request:
+    branches: [ master ]
+jobs:
+  coverage:
+    if: github.repository_owner == 'arkq'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    - name: Generate Coverage Report
+      run: |
+        pip install coverage
+        coverage run --include=src/* setup.py pytest
+    - name: Upload Coverage to Codecov
+      uses: codecov/codecov-action@v3

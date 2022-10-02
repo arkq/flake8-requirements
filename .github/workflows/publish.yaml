@@ -5,11 +5,11 @@ on:
     - '*'
 jobs:
   deploy:
+    if: github.repository_owner == 'arkq'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v1
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
       with:
         python-version: '3.x'
     - name: Install dependencies
