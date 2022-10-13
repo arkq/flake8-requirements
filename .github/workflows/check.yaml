@@ -1,20 +1,64 @@
 name: Check Python Package
+
 on:
   push:
   pull_request:
     branches: [ master ]
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
 jobs:
-  build:
+
+  check:
+    strategy:
+      fail-fast: false
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
       with:
         python-version: '3.x'
-    - name: Lint with flake8
+    - name: Run Tests
+      run: python setup.py pytest
+
+  code-ql:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: python
+        queries: security-and-quality
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+
+  doc8-lint:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run reStructuredText Linter
+      uses: deep-entertainment/doc8-action@v4
+      with:
+        scanPaths: ${{ github.workspace }}
+
+  flake8-lint:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    - name: Run flake8 Linter
       run: |
         pip install flake8
         flake8 --count --show-source --statistics src test
-    - name: Test with pytest
-      run: |
-        python setup.py pytest

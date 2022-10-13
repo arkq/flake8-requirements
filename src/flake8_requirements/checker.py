@@ -18,7 +18,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.7.1"
+__version__ = "1.7.2"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -397,13 +397,13 @@ class Flake8Checker(object):
     @staticmethod
     def discover_host_3rd_party_modules():
         """Scan host site-packages for 3rd party modules."""
+        mapping = {}
         try:
-            site_packages_dirs = site.getsitepackagess()
+            site_packages_dirs = site.getsitepackages()
             site_packages_dirs.append(site.getusersitepackages())
         except AttributeError as e:
             LOG.error("Couldn't get site packages: %s", e)
-            return
-        mapping = {}
+            return mapping
         for site_dir in site_packages_dirs:
             try:
                 dir_entries = os.listdir(site_dir)
@@ -423,7 +423,7 @@ class Flake8Checker(object):
                 with open(modules_path) as f:
                     modules = list(yield_lines(f.readlines()))
                 mapping[project2module(name)] = modules
-            return mapping
+        return mapping
 
     @staticmethod
     def discover_project_root_dir(path):
@@ -714,12 +714,12 @@ class Flake8Checker(object):
     def check_I900(self, node):
         """Run missing requirement checker."""
         if node.module[0] in STDLIB:
-            return
+            return None
         is_setup_py = self.is_project_setup_py(self.root_dir, self.filename)
         if node.module in self.get_mods_3rd_party(is_setup_py):
-            return
+            return None
         if node.module in self.get_mods_1st_party():
-            return
+            return None
         # When processing setup.py file, forcefully add setuptools to the
         # project requirements. Setuptools might be required to build the
         # project, even though it is not listed as a requirement - this
@@ -727,12 +727,15 @@ class Flake8Checker(object):
         # requirement would be pointless.
         if (is_setup_py and
                 node.module[0] in KNOWN_3RD_PARTIES["setuptools"]):
-            return
+            return None
         return ERRORS['I900'].format(pkg=node.module[0])
 
     def check_I901(self, node):
         """Run not-used requirement checker."""
-        return
+        if node.module[0] in STDLIB:
+            return None
+        # TODO: Implement this check.
+        return None
 
     def run(self):
         """Run checker."""

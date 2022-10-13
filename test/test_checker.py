@@ -113,6 +113,24 @@ class Flake8CheckerTestCase(unittest.TestCase):
         errors = check("from ..local import local")
         self.assertEqual(len(errors), 0)
 
+    def test_discover_host_3rd_party_modules(self):
+        class Options(Flake8Options):
+            scan_host_site_packages = True
+        Flake8Checker.parse_options(Options)
+        self.assertEqual(
+            type(Flake8Checker.known_host_3rd_parties),
+            dict,
+        )
+        # Since flake8-requirements (this package) is a plugin for flake8,
+        # it is very likely that onc will have flake8 installed in the host
+        # site-packages. However, that is not the case for all our GitHub
+        # Actions runners, so we can not enforce this assertion.
+        if 'flake8' in Flake8Checker.known_host_3rd_parties:
+            self.assertEqual(
+                Flake8Checker.known_host_3rd_parties['flake8'],
+                ['flake8'],
+            )
+
     def test_custom_mapping_parser(self):
         class Options(Flake8Options):
             known_modules = ":[pydrmcodec],mylib:[mylib.drm,mylib.ex]"
