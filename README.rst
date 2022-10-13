@@ -91,3 +91,14 @@ If you use the ``-r`` flag in your requirements text file with more than one lev
 (in other words, one file includes another, the included file includes yet another, and so on),
 add the ``--requirements-max-depth`` option to flake8 (for example, ``--requirements-max-depth=3``
 to allow three levels of recursion).
+
+FAQ
+---
+
+| **Q:** Package is added to the requirements, but flake8 still reports "I900 '<NAME>' not listed
+         as a requirement".
+| **A:** It happens when the name of the package is not the same as the name of the module. In such
+         a case, you have to provide the mapping between the package name and the module name. See
+         the "`Customization <#customization>`_" section for more details. If the package for which
+         that happens is a well-known package, please fill out a bug report or add mapping to the
+         `KNOWN_3RD_PARTIES <src/flake8_requirements/modules.py#L509>`_ and submit a pull request.

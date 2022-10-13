@@ -305,6 +305,9 @@ class Flake8Checker(object):
     # Host-based mapping for 3rd party modules.
     known_host_3rd_parties = {}
 
+    # Collect and report I901 errors
+    error_I901_enabled = False
+
     # User defined project->modules mapping.
     known_modules = {}
 
@@ -338,8 +341,7 @@ class Flake8Checker(object):
                 " provided modules. For example: ``--known-modules=project:"
                 "[Project],extra-project:[extras,utilities]``."
             ),
-            **kw
-        )
+            **kw)
         manager.add_option(
             "--requirements-file",
             action='store',
@@ -350,8 +352,7 @@ class Flake8Checker(object):
                 "given, requirements from setup.py, setup.cfg or "
                 "pyproject.toml will not be taken into account."
             ),
-            **kw
-        )
+            **kw)
         manager.add_option(
             "--requirements-max-depth",
             type=int if flake8.__version__ >= '3.8.0' else 'int',
@@ -360,8 +361,7 @@ class Flake8Checker(object):
                 "Max depth to resolve recursive requirements. Defaults to 1 "
                 "(one level of recursion allowed)."
             ),
-            **kw
-        )
+            **kw)
         manager.add_option(
             "--scan-host-site-packages",
             action='store_true',
@@ -370,8 +370,7 @@ class Flake8Checker(object):
                 "which provide more than one module or the name of the module"
                 " is different than the project name itself."
             ),
-            **kw
-        )
+            **kw)
 
     @classmethod
     def parse_options(cls, options):
@@ -740,8 +739,9 @@ class Flake8Checker(object):
 
         checkers = []
         checkers.append(self.check_I900)
-        checkers.append(self.check_I901)
+        if self.error_I901_enabled:
+            checkers.append(self.check_I901)
 
         for node in ImportVisitor(self.tree).imports:
             for err in filter(None, map(lambda c: c(node), checkers)):
-                yield (node.line, node.offset, err, Flake8Checker)
+                yield node.line, node.offset, err, type(self)
