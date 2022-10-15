@@ -196,13 +196,13 @@ class SetupVisitor(ast.NodeVisitor):
                 '__file__': os.path.join(cwd, "setup.py"),
                 '__f8r_setup': setup,
             })
-        except Exception as e:
+        except BaseException as e:
             # XXX: Exception during setup.py evaluation might not necessary
             #      mean "fatal error". This exception might occur if e.g.
             #      we have hijacked local setup() function (due to matching
             #      heuristic for function arguments). Anyway, we shall not
             #      break flake8 execution due to our eval() usage.
-            LOG.exception("Couldn't evaluate setup.py: %s", e)
+            LOG.error("Couldn't evaluate setup.py: %r", e)
             self.redirected = False
 
         # Restore import search path.
@@ -548,7 +548,7 @@ class Flake8Checker(object):
         try:
             with open(os.path.join(cls.root_dir, "pyproject.toml")) as f:
                 return toml.loads(f.read())
-        except IOError as e:
+        except (IOError, toml.TomlDecodeError) as e:
             LOG.debug("Couldn't load project setup: %s", e)
             return {}
 

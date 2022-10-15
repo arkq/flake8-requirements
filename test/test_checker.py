@@ -32,6 +32,12 @@ class Flake8Checker(checker.Flake8Checker):
         return self.filename == "setup.py"
 
 
+class Flake8OptionManagerMock(dict):
+
+    def add_option(self, name, **kw):
+        self[name] = kw
+
+
 class Flake8Options:
     known_modules = ""
     requirements_file = None
@@ -48,6 +54,15 @@ def check(code, filename="<unknown>", options=None):
 
 
 class Flake8CheckerTestCase(unittest.TestCase):
+
+    def test_add_options(self):
+        manager = Flake8OptionManagerMock()
+        Flake8Checker.add_options(manager)
+        self.assertEqual(
+            sorted(manager.keys()),
+            ['--known-modules', '--requirements-file',
+             '--requirements-max-depth', '--scan-host-site-packages'],
+        )
 
     def test_stdlib(self):
         errors = check("import os\nfrom unittest import TestCase")
@@ -121,10 +136,10 @@ class Flake8CheckerTestCase(unittest.TestCase):
             type(Flake8Checker.known_host_3rd_parties),
             dict,
         )
-        # Since flake8-requirements (this package) is a plugin for flake8,
-        # it is very likely that onc will have flake8 installed in the host
-        # site-packages. However, that is not the case for all our GitHub
-        # Actions runners, so we can not enforce this assertion.
+        # Since flake8-requirements (this package) is a plugin for flake8, it
+        # is very likely that one will have flake8 installed in the host
+        # site-packages. However, that is not the case for our GitHub Actions
+        # runners, so we can not enforce this assertion.
         if 'flake8' in Flake8Checker.known_host_3rd_parties:
             self.assertEqual(
                 Flake8Checker.known_host_3rd_parties['flake8'],

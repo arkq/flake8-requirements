@@ -55,6 +55,27 @@ class SetupTestCase(unittest.TestCase):
         setup = SetupVisitor(ast.parse(code), "")
         self.assertEqual(setup.redirected, False)
 
+    def test_detect_setup_wrong_num_of_args(self):
+        setup = SetupVisitor(ast.parse("setup(name='A')"), "")
+        self.assertEqual(setup.redirected, False)
+
+    def test_detect_setup_wrong_function(self):
+        setup = SetupVisitor(ast.parse("setup(1, name='A')"), "")
+        self.assertEqual(setup.redirected, False)
+
+    def test_detect_setup_oops(self):
+        setup = SetupVisitor(ast.parse("\n".join((
+            "from .myModule import setup",
+            "setup({})".format(",".join((
+                "name='A'",
+                "version='1'",
+                "author='A'",
+                "packages=['']",
+                "url='URL'",
+            ))),
+        ))), "")
+        self.assertEqual(setup.redirected, False)
+
     def test_get_requirements(self):
         setup = SetupVisitor(ast.parse("setup(**{})".format(str({
             'name': 'A',

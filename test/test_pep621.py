@@ -57,6 +57,11 @@ class Pep621TestCase(unittest.TestCase):
             }
             self.assertDictEqual(pep621, expected)
 
+    def test_get_pyproject_toml_invalid(self):
+        content = self.content + "invalid"
+        with mock.patch(builtins_open, mock.mock_open(read_data=content)):
+            self.assertDictEqual(Flake8Checker.get_pyproject_toml_pep621(), {})
+
     def test_1st_party(self):
         with mock.patch(builtins_open, mock.mock_open()) as m:
             m.side_effect = (
