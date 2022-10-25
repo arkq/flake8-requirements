@@ -4,10 +4,15 @@ import re
 import site
 import sys
 from collections import namedtuple
+from copy import deepcopy
 from configparser import ConfigParser
 from functools import wraps
 from logging import getLogger
+from multiprocessing import Queue
 
+import flake8
+import wrapt
+from flake8.checker import Manager
 from pkg_resources import parse_requirements
 from pkg_resources import yield_lines
 
@@ -279,6 +284,25 @@ class ModuleSet(dict):
             self = self.setdefault(mod, ModuleSet())
         self.requirement = requirement
 
+    def remove(self, module):
+        for mod in module:
+            sub_self = self.get(mod)
+            if sub_self is None:
+                break
+            sub_self.requirement = None
+            if len(sub_self) == 0:
+                del self[mod]
+            self = sub_self
+
+    def requirements(self):
+        """Collect requirements from all modules."""
+        requirements = set()
+        for sub in self.values():
+            if sub.requirement is not None:
+                requirements.add(sub.requirement)
+            requirements.update(sub.requirements())
+        return requirements
+
     def __contains__(self, module):
         for mod in module:
             self = self.get(mod)
@@ -287,6 +311,19 @@ class ModuleSet(dict):
             if self.requirement is not None:
                 return True
         return False
+
+
+@wrapt.patch_function_wrapper(Manager, 'run')
+def flake8_checker_Manager_run(wrapped, instance, args, kw):
+    Checker = namedtuple('Checker', ('display_name', 'results'))
+    wrapped(*args, **kw)  # Run original method.
+    print("RUN done")
+    cc = Checker('requirements.txt', [])
+    plugin = instance.checks.plugins['I90'].plugin
+    for line, offset, text, _ in plugin.check_I901_finalize():
+        code, text = text.split(" ", 1)
+        cc.results.append((code, line, offset, text, None))
+    instance._all_checkers.append(cc)
 
 
 class Flake8Checker(object):
@@ -329,6 +366,13 @@ class Flake8Checker(object):
     @classmethod
     def add_options(cls, manager):
         """Register plug-in specific options."""
+        manager.add_option(
+            "--enable-I901",
+            action='store_true',
+            help=(
+                "Enable I901 report"
+            ),
+            **kw)
         manager.add_option(
             "--known-modules",
             action='store',
@@ -392,6 +436,9 @@ class Flake8Checker(object):
         if options.scan_host_site_packages:
             cls.known_host_3rd_parties = cls.discover_host_3rd_party_modules()
         cls.root_dir = cls.discover_project_root_dir(os.getcwd())
+        if options.enable_I901:
+            cls.error_I901_enabled = True
+            cls.used_modules_queue = Queue()
 
     @staticmethod
     def discover_host_3rd_party_modules():
@@ -739,8 +786,19 @@ class Flake8Checker(object):
         """Run not-used requirement checker."""
         if node.module[0] in STDLIB:
             return None
-        # TODO: Implement this check.
-        return None
+        self.used_modules_queue.put(node.module)
+
+    @classmethod
+    def check_I901_finalize(cls):
+        """Report not-used requirements."""
+        if not cls.error_I901_enabled:
+            return
+        modules = deepcopy(cls.get_mods_3rd_party(False))
+        while not cls.used_modules_queue.empty():
+            modules.remove(cls.used_modules_queue.get(False))
+        for requirement in modules.requirements():
+            err = ERRORS['I901'].format(pkg=requirement.project_name)
+            yield 1, 0, err, type(cls)
 
     def run(self):
         """Run checker."""

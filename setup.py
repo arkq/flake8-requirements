@@ -28,6 +28,7 @@ setup(
         "flake8 >= 4.0.0",
         "setuptools >= 10.0.0",
         "tomli>=1.2.1; python_version < '3.11'",
+        "wrapt >= 1.2.0",
     ],
     setup_requires=["pytest-runner"],
     tests_require=["mock", "pytest"],

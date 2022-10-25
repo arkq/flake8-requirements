@@ -40,6 +40,7 @@ class Flake8OptionManagerMock(dict):
 
 
 class Flake8Options:
+    enable_I901 = False
     known_modules = ""
     requirements_file = None
     requirements_max_depth = 1
@@ -61,7 +62,7 @@ class Flake8CheckerTestCase(unittest.TestCase):
         Flake8Checker.add_options(manager)
         self.assertEqual(
             sorted(manager.keys()),
-            ['--known-modules', '--requirements-file',
+            ['--enable-I901', '--known-modules', '--requirements-file',
              '--requirements-max-depth', '--scan-host-site-packages'],
         )
 

@@ -8,6 +8,7 @@ from flake8_requirements.checker import memoize
 
 
 class Flake8Options:
+    enable_I901 = False
     known_modules = ""
     requirements_file = None
     requirements_max_depth = 1
