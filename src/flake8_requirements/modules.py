@@ -502,6 +502,8 @@ STDLIB_PY3 = (
     # Modules since Python 3.9
     "graphlib",
     "zoneinfo",
+    # Modules since Python 3.11
+    "tomllib",
 )
 
 # Mapping for known 3rd party projects, which provide more than one module
