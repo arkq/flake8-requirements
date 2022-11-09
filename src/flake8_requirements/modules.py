@@ -608,6 +608,7 @@ KNOWN_3RD_PARTIES = {
     "mysql-python": ["MySQLdb"],
     "mysqlclient": ["_mysql", "MySQLdb"],
     "opencv-python": ["cv2"],
+    "opencv-python-headless": ["cv2"],
     "opensearch-py": ["opensearchpy"],
     "opentelemetry-api": ["opentelemetry"],
     "opentelemetry-exporter-otlp-proto-grpc": [
@@ -650,6 +651,7 @@ KNOWN_3RD_PARTIES = {
     "opentelemetry-test-utils": ["opentelemetry.test"],
     "paho-mqtt": ["paho"],
     "pillow": ["PIL"],
+    "pillow-simd": ["PIL"],
     "pip-tools": ["piptools"],
     "progressbar2": ["progressbar"],
     "protobuf": ["google.protobuf"],
@@ -681,6 +683,7 @@ KNOWN_3RD_PARTIES = {
     "python-magic": ["magic"],
     "python-pptx": ["pptx"],
     "python-socketio": ["socketio"],
+    "pyturbojpeg": ["turbojpeg"],
     "pyyaml": ["yaml"],
     "scikit-fda": ["skfda"],
     "scikit-image": ["skimage"],
