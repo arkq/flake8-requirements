@@ -601,6 +601,7 @@ KNOWN_3RD_PARTIES = {
     "grpcio-status": ["grpc_status"],
     "grpcio-testing": ["grpc_testing"],
     "grpcio-tools": ["grpc_tools"],
+    "hydra-core": ["hydra"],
     "ipython": ["IPython"],
     "jack-client": ["jack"],
     "kafka-python": ["kafka"],
