@@ -608,6 +608,7 @@ KNOWN_3RD_PARTIES = {
     "mysql-python": ["MySQLdb"],
     "mysqlclient": ["_mysql", "MySQLdb"],
     "opencv-python": ["cv2"],
+    "opencv-contrib-python": ["cv2"],
     "opencv-python-headless": ["cv2"],
     "opensearch-py": ["opensearchpy"],
     "opentelemetry-api": ["opentelemetry"],
