@@ -571,6 +571,7 @@ KNOWN_3RD_PARTIES = {
     "djangorestframework": ["rest_framework"],
     "enum34": ["enum"],
     "factory-boy": ["factory"],
+    "ffmpeg-python": ["ffmpeg"],
     "fluent-logger": ["fluent"],
     "gitpython": ["git"],
     "google-api-python-client": ["apiclient", "googleapiclient"],
