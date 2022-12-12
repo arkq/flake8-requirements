@@ -556,7 +556,7 @@ KNOWN_3RD_PARTIES = {
     "azure-storage-queue": ["azure.storage.queue"],
     "beautifulsoup4": ["bs4"],
     "bitvector": ["BitVector"],
-    "cattrs": ["cattr"],
+    "cattrs": ["cattr", "cattrs"],
     "cx-oracle": ["cx_Oracle"],
     "databricks-connect": ["pyspark"],
     "django-ajax-selects": ["ajax_select"],
