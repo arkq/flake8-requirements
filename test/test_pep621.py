@@ -21,7 +21,7 @@ class Flake8Options:
 
 class Pep621TestCase(unittest.TestCase):
 
-    content = """
+    content = b"""
     [project]
     name="test"
     dependencies=["tools==1.0"]
@@ -58,7 +58,7 @@ class Pep621TestCase(unittest.TestCase):
             self.assertDictEqual(pep621, expected)
 
     def test_get_pyproject_toml_invalid(self):
-        content = self.content + "invalid"
+        content = self.content + b"invalid"
         with mock.patch(builtins_open, mock.mock_open(read_data=content)):
             self.assertDictEqual(Flake8Checker.get_pyproject_toml_pep621(), {})
 

@@ -9,9 +9,13 @@ from functools import wraps
 from logging import getLogger
 
 import flake8
-import toml
 from pkg_resources import parse_requirements
 from pkg_resources import yield_lines
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 from .modules import KNOWN_3RD_PARTIES
 from .modules import STDLIB_PY2
@@ -545,10 +549,11 @@ class Flake8Checker(object):
     @memoize
     def get_pyproject_toml(cls):
         """Try to load PEP 518 configuration file."""
+        pyproject_config_path = os.path.join(cls.root_dir, "pyproject.toml")
         try:
-            with open(os.path.join(cls.root_dir, "pyproject.toml")) as f:
-                return toml.loads(f.read())
-        except (IOError, toml.TomlDecodeError) as e:
+            with open(pyproject_config_path, mode="rb") as f:
+                return tomllib.load(f)
+        except (IOError, tomllib.TOMLDecodeError) as e:
             LOG.debug("Couldn't load project setup: %s", e)
             return {}
 
