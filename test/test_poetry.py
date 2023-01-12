@@ -18,13 +18,13 @@ class PoetryTestCase(unittest.TestCase):
         memoize.mem = {}
 
     def test_get_pyproject_toml_poetry(self):
-        content = "[tool.poetry]\nname='x'\n[tool.poetry.tag]\nx=0\n"
+        content = b"[tool.poetry]\nname='x'\n[tool.poetry.tag]\nx=0\n"
         with mock.patch(builtins_open, mock.mock_open(read_data=content)):
             poetry = Flake8Checker.get_pyproject_toml_poetry()
             self.assertDictEqual(poetry, {'name': "x", 'tag': {'x': 0}})
 
     def test_1st_party(self):
-        content = "[tool.poetry]\nname='book'\n"
+        content = b"[tool.poetry]\nname='book'\n"
 
         with mock.patch(builtins_open, mock.mock_open()) as m:
             m.side_effect = (
@@ -38,8 +38,8 @@ class PoetryTestCase(unittest.TestCase):
             self.assertEqual(mods, ModuleSet({"book": {}}))
 
     def test_3rd_party(self):
-        content = "[tool.poetry.dependencies]\ntools='1.0'\n"
-        content += "[tool.poetry.dev-dependencies]\ndev-tools='1.0'\n"
+        content = b"[tool.poetry.dependencies]\ntools='1.0'\n"
+        content += b"[tool.poetry.dev-dependencies]\ndev-tools='1.0'\n"
 
         with mock.patch(builtins_open, mock.mock_open()) as m:
             m.side_effect = (
@@ -53,8 +53,8 @@ class PoetryTestCase(unittest.TestCase):
             self.assertEqual(mods, ModuleSet({"tools": {}, "dev_tools": {}}))
 
     def test_3rd_party_groups(self):
-        content = "[tool.poetry.dependencies]\ntools='1.0'\n"
-        content += "[tool.poetry.group.dev.dependencies]\ndev-tools='1.0'\n"
+        content = b"[tool.poetry.dependencies]\ntools='1.0'\n"
+        content += b"[tool.poetry.group.dev.dependencies]\ndev-tools='1.0'\n"
 
         with mock.patch(builtins_open, mock.mock_open()) as m:
             m.side_effect = (
