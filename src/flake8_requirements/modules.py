@@ -657,7 +657,12 @@ KNOWN_3RD_PARTIES = {
     "pillow": ["PIL"],
     "pillow-simd": ["PIL"],
     "pip-tools": ["piptools"],
-    "plotly": ["plotly", "_plotly_utils"],
+    "plotly": [
+        "jupyterlab_plotly",
+        "plotly",
+        "_plotly_utils",
+        "_plotly_future_",
+    ],
     "progressbar2": ["progressbar"],
     "protobuf": ["google.protobuf"],
     "psycopg2-binary": ["psycopg2"],
