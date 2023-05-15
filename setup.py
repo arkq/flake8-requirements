@@ -1,5 +1,3 @@
-from __future__ import with_statement
-
 import re
 from os import path
 
@@ -27,7 +25,7 @@ setup(
     package_dir={'': "src"},
     packages=["flake8_requirements"],
     install_requires=[
-        "flake8 >= 2.0.0",
+        "flake8 >= 4.0.0",
         "setuptools >= 10.0.0",
         "tomli>=1.2.1; python_version < '3.11'",
     ],
@@ -43,8 +41,8 @@ setup(
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3 :: Only"
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Software Development :: Quality Assurance",
     ],

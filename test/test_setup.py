@@ -1,18 +1,13 @@
 import ast
 import os
 import unittest
+from unittest import mock
+from unittest.mock import mock_open
 
 from pkg_resources import parse_requirements
 
 from flake8_requirements.checker import Flake8Checker
 from flake8_requirements.checker import SetupVisitor
-
-try:
-    from unittest import mock
-    builtins_open = 'builtins.open'
-except ImportError:
-    import mock
-    builtins_open = '__builtin__.open'
 
 
 class SetupTestCase(unittest.TestCase):
@@ -100,7 +95,7 @@ class SetupTestCase(unittest.TestCase):
         curdir = os.path.abspath(os.path.dirname(__file__))
         with open(os.path.join(curdir, "test_setup.cfg")) as f:
             content = f.read()
-        with mock.patch(builtins_open, mock.mock_open(read_data=content)):
+        with mock.patch('builtins.open', mock_open(read_data=content)):
             checker = Flake8Checker(None, None)
             self.assertEqual(
                 checker.get_setup_cfg_requirements(False),

@@ -8,7 +8,6 @@ from configparser import ConfigParser
 from functools import wraps
 from logging import getLogger
 
-import flake8
 from pkg_resources import parse_requirements
 from pkg_resources import yield_lines
 
@@ -18,11 +17,10 @@ else:
     import tomli as tomllib
 
 from .modules import KNOWN_3RD_PARTIES
-from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.7.8"
+__version__ = "2.0.0"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -33,10 +31,7 @@ ERRORS = {
 }
 
 STDLIB = set()
-if sys.version_info[0] == 2:
-    STDLIB.update(STDLIB_PY2)
-if sys.version_info[0] == 3:
-    STDLIB.update(STDLIB_PY3)
+STDLIB.update(STDLIB_PY3)
 
 
 def memoize(f):
@@ -334,48 +329,45 @@ class Flake8Checker(object):
     @classmethod
     def add_options(cls, manager):
         """Register plug-in specific options."""
-        kw = {}
-        if flake8.__version__ >= '3.0.0':
-            kw['parse_from_config'] = True
         manager.add_option(
             "--known-modules",
             action='store',
             default="",
+            parse_from_config=True,
             help=(
                 "User defined mapping between a project name and a list of"
                 " provided modules. For example: ``--known-modules=project:"
                 "[Project],extra-project:[extras,utilities]``."
-            ),
-            **kw)
+            ))
         manager.add_option(
             "--requirements-file",
             action='store',
+            parse_from_config=True,
             help=(
                 "Specify the name (location) of the requirements text file. "
                 "Unless an absolute path is given, the file will be searched "
                 "relative to the project's root directory. If this option is "
                 "given, requirements from setup.py, setup.cfg or "
                 "pyproject.toml will not be taken into account."
-            ),
-            **kw)
+            ))
         manager.add_option(
             "--requirements-max-depth",
-            type=int if flake8.__version__ >= '3.8.0' else 'int',
+            type=int,
             default=1,
+            parse_from_config=True,
             help=(
                 "Max depth to resolve recursive requirements. Defaults to 1 "
                 "(one level of recursion allowed)."
-            ),
-            **kw)
+            ))
         manager.add_option(
             "--scan-host-site-packages",
             action='store_true',
+            parse_from_config=True,
             help=(
                 "Scan host's site-packages directory for 3rd party projects, "
                 "which provide more than one module or the name of the module"
                 " is different than the project name itself."
-            ),
-            **kw)
+            ))
 
     @classmethod
     def parse_options(cls, options):
