@@ -15,6 +15,7 @@ class SetupVisitorMock(checker.SetupVisitor):
                 "bar",
                 "hyp-hen",
                 "python-boom",
+                "python-snake",
                 "pillow",
                 "space.module",
             ],
@@ -88,6 +89,10 @@ class Flake8CheckerTestCase(unittest.TestCase):
 
     def test_3rd_party_python_prefix(self):
         errors = check("from boom import blast")
+        self.assertEqual(len(errors), 0)
+
+    def test_3rd_party_python_prefix_no_strip(self):
+        errors = check("import python_snake as snake")
         self.assertEqual(len(errors), 0)
 
     def test_3rd_party_missing(self):

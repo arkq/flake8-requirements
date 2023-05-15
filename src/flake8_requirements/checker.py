@@ -22,7 +22,7 @@ from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.7.7"
+__version__ = "1.7.8"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -59,14 +59,14 @@ def modsplit(module):
     return tuple(module.split("."))
 
 
-def project2module(project):
-    """Convert project name into a module name."""
+def project2modules(project):
+    """Convert project name into auto-detected module names."""
     # Name unification in accordance with PEP 426.
-    project = project.lower().replace("-", "_")
-    if project.startswith("python_"):
+    modules = [project.lower().replace("-", "_")]
+    if modules[0].startswith("python_"):
         # Remove conventional "python-" prefix.
-        project = project[7:]
-    return project
+        modules.append(modules[0][7:])
+    return modules
 
 
 def joinlines(lines):
@@ -302,8 +302,9 @@ class Flake8Checker(object):
 
     # Build-in mapping for known 3rd party modules.
     known_3rd_parties = {
-        project2module(k): v
+        k: v
         for k, v in KNOWN_3RD_PARTIES.items()
+        for k in project2modules(k)
     }
 
     # Host-based mapping for 3rd party modules.
@@ -382,15 +383,17 @@ class Flake8Checker(object):
         if isinstance(options.known_modules, dict):
             # Support for nicer known-modules using flake8-pyproject.
             cls.known_modules = {
-                project2module(k): v for k, v in options.known_modules.items()
+                k: v
+                for k, v in options.known_modules.items()
+                for k in project2modules(k)
             }
         else:
             cls.known_modules = {
-                project2module(k): v.split(",")
+                k: v.split(",")
                 for k, v in [
                     x.split(":[")
-                    for x in re.split(r"],?", options.known_modules)[:-1]
-                ]
+                    for x in re.split(r"],?", options.known_modules)[:-1]]
+                for k in project2modules(k)
             }
         cls.requirements_file = options.requirements_file
         cls.requirements_max_depth = options.requirements_max_depth
@@ -426,7 +429,8 @@ class Flake8Checker(object):
                     ), "")
                 with open(modules_path) as f:
                     modules = list(yield_lines(f.readlines()))
-                mapping[project2module(name)] = modules
+                for name in project2modules(name):
+                    mapping[name] = modules
         return mapping
 
     @staticmethod
@@ -668,12 +672,15 @@ class Flake8Checker(object):
     def get_mods_1st_party(cls):
         mods_1st_party = ModuleSet()
         # Get 1st party modules (used for absolute imports).
-        modules = [project2module(
+        modules = project2modules(
             cls.get_setup_py().keywords.get('name') or
             cls.get_setup_cfg().get('metadata', 'name') or
             cls.get_pyproject_toml_pep621().get('name') or
             cls.get_pyproject_toml_poetry().get('name') or
-            "")]
+            "")
+        # Use known module mappings to correct auto-detected name. Please note
+        # that we're using the first module name only, since all mappings shall
+        # contain all possible auto-detected module names.
         if modules[0] in cls.known_modules:
             modules = cls.known_modules[modules[0]]
         for module in modules:
@@ -686,7 +693,8 @@ class Flake8Checker(object):
         mods_3rd_party = ModuleSet()
         # Get 3rd party module names based on requirements.
         for requirement in cls.get_mods_3rd_party_requirements(is_setup_py):
-            modules = [project2module(requirement.project_name)]
+            modules = project2modules(requirement.project_name)
+            # Use known module mappings to correct auto-detected module name.
             if modules[0] in cls.known_modules:
                 modules = cls.known_modules[modules[0]]
             elif modules[0] in cls.known_3rd_parties:
