@@ -335,6 +335,7 @@ STDLIB_PY3 = (
     "doctest",
     "dummy_threading",
     "email",
+    "encodings",
     "ensurepip",
     "enum",
     "errno",
