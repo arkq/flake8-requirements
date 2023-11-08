@@ -14,7 +14,8 @@ jobs:
         python-version: '3.x'
     - name: Generate Coverage Report
       run: |
-        pip install coverage
+        python -m pip install --upgrade pip
+        pip install coverage setuptools
         coverage run --include=src/* setup.py pytest
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@v3
