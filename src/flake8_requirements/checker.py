@@ -347,8 +347,9 @@ class Flake8Checker(object):
                 "Specify the name (location) of the requirements text file. "
                 "Unless an absolute path is given, the file will be searched "
                 "relative to the project's root directory. If this option is "
-                "given, requirements from setup.py, setup.cfg or "
-                "pyproject.toml will not be taken into account."
+                "not specified, the plugin look up for requirements in "
+                "(1) setup.py, (2) setup.cfg, (3) pyproject.toml, and (4) "
+                "requirements.txt. If specified, look up will not take place."
             ))
         manager.add_option(
             "--requirements-max-depth",
