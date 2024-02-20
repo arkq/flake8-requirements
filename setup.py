@@ -29,7 +29,7 @@ setup(
         "setuptools >= 10.0.0",
         "tomli>=1.2.1; python_version < '3.11'",
     ],
-    extras_require={"toml": ["Flake8-pyproject"]},
+    extras_require={"pyproject": ["Flake8-pyproject"]},
     setup_requires=["pytest-runner"],
     tests_require=["mock", "pytest"],
     entry_points={

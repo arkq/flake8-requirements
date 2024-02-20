@@ -65,7 +65,7 @@ Real life example::
   known-modules = my-lib:[mylib.drm,mylib.encryption]
 
 If you use `Flake8-pyproject <https://pypi.org/project/Flake8-pyproject/>`_
-(can include for installation using ``flake8-requirements[toml]``),
+(can include for installation using ``flake8-requirements[pyproject]``),
 you can also configure the known modules using a nicer syntax in ``pyproject.toml``::
 
   $ cat pyproject.toml
