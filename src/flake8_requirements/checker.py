@@ -20,7 +20,7 @@ from .modules import KNOWN_3RD_PARTIES
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "2.0.2"
+__version__ = "2.1.0"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
