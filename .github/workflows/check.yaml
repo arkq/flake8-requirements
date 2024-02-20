@@ -64,5 +64,5 @@ jobs:
         python-version: '3.x'
     - name: Run flake8 Linter
       run: |
-        pip install flake8
+        pip install -e . flake8
         flake8 --count --show-source --statistics src test
