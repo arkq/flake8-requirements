@@ -64,8 +64,9 @@ Real life example::
   max-line-length = 100
   known-modules = my-lib:[mylib.drm,mylib.encryption]
 
-If you use `flake8-pyproject <https://pypi.org/project/Flake8-pyproject/>`_, you can also configure
-the known modules using a nicer syntax::
+If you use `Flake8-pyproject <https://pypi.org/project/Flake8-pyproject/>`_
+(can include for installation using ``flake8-requirements[toml]``),
+you can also configure the known modules using a nicer syntax in ``pyproject.toml``::
 
   $ cat pyproject.toml
   ...
