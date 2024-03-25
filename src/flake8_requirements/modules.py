@@ -314,7 +314,7 @@ KNOWN_3RD_PARTIES = {
     ],
     "google-cloud-pubsub": [
         "google.cloud.pubsub_v1",
-        "google.cloud.pubsub"
+        "google.cloud.pubsub",
         "google.pubsub_v1",
         "google.pubsub",
     ],
