@@ -29,7 +29,8 @@ setup(
     install_requires=[
         "flake8 >= 2.0.0",
         "setuptools >= 10.0.0",
-        "tomli>=1.2.1; python_version < '3.11'",
+        "toml >= 0.7.0; python_version < '3.0'",
+        "tomli >= 1.2.1; python_version >= '3.0' and python_version < '3.11'",
     ],
     setup_requires=["pytest-runner"],
     tests_require=["mock", "pytest"],

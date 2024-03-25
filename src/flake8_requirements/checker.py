@@ -12,17 +12,20 @@ import flake8
 from pkg_resources import parse_requirements
 from pkg_resources import yield_lines
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
+try:
+    if sys.version_info >= (3, 11):
+        import tomllib
+    else:
+        import tomli as tomllib
+except ImportError:
+    import toml
 
 from .modules import KNOWN_3RD_PARTIES
 from .modules import STDLIB_PY2
 from .modules import STDLIB_PY3
 
 # NOTE: Changing this number will alter package version as well.
-__version__ = "1.7.8"
+__version__ = "1.7.9"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -560,6 +563,13 @@ class Flake8Checker(object):
         except (IOError, tomllib.TOMLDecodeError) as e:
             LOG.debug("Couldn't load project setup: %s", e)
             return {}
+        except Exception:
+            try:
+                with open(pyproject_config_path, mode="rb") as f:
+                    return toml.loads(f.read())
+            except (IOError, toml.TomlDecodeError) as e:
+                LOG.debug("Couldn't load project setup: %s", e)
+                return {}
 
     @classmethod
     def get_pyproject_toml_pep621(cls):
