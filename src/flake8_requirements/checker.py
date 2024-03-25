@@ -18,7 +18,7 @@ try:
     else:
         import tomli as tomllib
 except ImportError:
-    import toml
+    import toml as tomllib
 
 from .modules import KNOWN_3RD_PARTIES
 from .modules import STDLIB_PY2
@@ -560,16 +560,9 @@ class Flake8Checker(object):
         try:
             with open(pyproject_config_path, mode="rb") as f:
                 return tomllib.load(f)
-        except (IOError, tomllib.TOMLDecodeError) as e:
+        except Exception as e:
             LOG.debug("Couldn't load project setup: %s", e)
             return {}
-        except Exception:
-            try:
-                with open(pyproject_config_path, mode="rb") as f:
-                    return toml.loads(f.read())
-            except (IOError, toml.TomlDecodeError) as e:
-                LOG.debug("Couldn't load project setup: %s", e)
-                return {}
 
     @classmethod
     def get_pyproject_toml_pep621(cls):
