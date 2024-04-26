@@ -561,6 +561,33 @@ class Flake8Checker(object):
         return cfg_pep518.get('project', {})
 
     @classmethod
+    def get_setuptools_dynamic_requirements(cls):
+        """Retrieve dynamic requirements defined in setuptools config."""
+        cfg = cls.get_pyproject_toml()
+        dynamic_keys = cfg.get('project', {}).get('dynamic', [])
+        dynamic_config = (
+            cfg.get('tool', {}).get('setuptools', {}).get('dynamic', {})
+        )
+        requirements = []
+        files_to_parse = []
+        if 'dependencies' in dynamic_keys:
+            files_to_parse.extend(
+                dynamic_config.get('dependencies', {}).get('file', [])
+            )
+        if 'optional-dependencies' in dynamic_keys:
+            for element in dynamic_config.get(
+                'optional-dependencies', {}
+            ).values():
+                files_to_parse.extend(element.get('file', []))
+        for file_path in files_to_parse:
+            try:
+                with open(file_path, 'r') as file:
+                    requirements.extend(parse_requirements(file))
+            except IOError as e:
+                LOG.debug("Couldn't open requirements file: %s", e)
+        return requirements
+
+    @classmethod
     def get_pyproject_toml_pep621_requirements(cls):
         """Try to get PEP 621 metadata requirements."""
         pep621 = cls.get_pyproject_toml_pep621()
@@ -569,6 +596,8 @@ class Flake8Checker(object):
             pep621.get("dependencies", ())))
         for r in pep621.get("optional-dependencies", {}).values():
             requirements.extend(parse_requirements(r))
+        if len(requirements) == 0:
+            requirements = cls.get_setuptools_dynamic_requirements()
         return requirements
 
     @classmethod
