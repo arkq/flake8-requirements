@@ -236,6 +236,7 @@ KNOWN_3RD_PARTIES = {
     "ansicolors": ["colors"],
     "apache-airflow": ["airflow"],
     "appengine-python-standard": ["google.appengine"],
+    "atlassian-python-api": ["atlassian"],
     "attrs": ["attr", "attrs"],
     "awesome-slugify": ["slugify"],
     "azure-common": ["azure.common"],
