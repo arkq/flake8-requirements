@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "build"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flake8-requirements"
+# NOTE: Keep in sync with src/flake8_requirements/checker.py file.
+version = "2.2.1"
+description = "Package requirements checker, plugin for flake8"
+readme = "README.rst"
+authors = [ { name = "Arkadiusz Bokowy", email = "arkadiusz.bokowy@gmail.com" } ]
+requires-python = ">=3.6"
+classifiers = [
+    "Framework :: Flake8",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = [
+    "flake8 >= 4.0.0",
+    "setuptools >= 10.0.0",
+    "tomli>=1.2.1; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+pyproject = ["Flake8-pyproject"]
+
+[project.urls]
+Homepage = "https://github.com/arkq/flake8-requirements"
+
+[project.entry-points."flake8.extension"]
+I90 = "flake8_requirements:Flake8Checker"
+
+[tool.doc8]
+max-line-length = 99
+
+[tool.isort]
+force_single_line = true

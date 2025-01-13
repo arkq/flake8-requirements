@@ -19,7 +19,7 @@ else:
 from .modules import KNOWN_3RD_PARTIES
 from .modules import STDLIB_PY3
 
-# NOTE: Changing this number will alter package version as well.
+# NOTE: Keep in sync with pyproject.toml file.
 __version__ = "2.2.1"
 __license__ = "MIT"
 

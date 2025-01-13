@@ -28,9 +28,9 @@ class Flake8Checker(checker.Flake8Checker):
     def get_setup_py(cls):
         return SetupVisitorMock()
 
-    @property
-    def processing_setup_py(self):
-        return self.filename == "setup.py"
+    @staticmethod
+    def is_project_setup_py(project_root_dir, filename):
+        return filename == "setup.py"
 
 
 class Flake8OptionManagerMock(dict):

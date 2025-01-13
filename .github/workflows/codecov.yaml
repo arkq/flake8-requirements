@@ -14,10 +14,11 @@ jobs:
         python-version: '3.x'
     - name: Generate Coverage Report
       run: |
-        python -m pip install --upgrade pip
-        pip install coverage setuptools
-        coverage run --include=src/* setup.py pytest
+        pip install tox
+        tox
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        files: .tox/coverage.xml
+        disable_search: true
