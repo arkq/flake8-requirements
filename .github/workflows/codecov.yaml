@@ -8,8 +8,8 @@ jobs:
     if: github.repository_owner == 'arkq'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: '3.x'
     - name: Generate Coverage Report
@@ -18,4 +18,6 @@ jobs:
         pip install coverage setuptools
         coverage run --include=src/* setup.py pytest
     - name: Upload Coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
