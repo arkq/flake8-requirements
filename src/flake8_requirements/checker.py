@@ -551,7 +551,7 @@ class Flake8Checker(object):
             with open(pyproject_config_path, mode="rb") as f:
                 return tomllib.load(f)
         except (IOError, tomllib.TOMLDecodeError) as e:
-            LOG.debug("Couldn't load project setup: %s", e)
+            LOG.debug("Couldn't load pyproject: %s", e)
             return {}
 
     @classmethod
@@ -675,7 +675,7 @@ class Flake8Checker(object):
             with open(os.path.join(cls.root_dir, "setup.py")) as f:
                 return SetupVisitor(ast.parse(f.read()), cls.root_dir)
         except IOError as e:
-            LOG.debug("Couldn't load project setup: %s", e)
+            LOG.debug("Couldn't load setup: %s", e)
             return SetupVisitor(ast.parse(""), cls.root_dir)
 
     @classmethod
