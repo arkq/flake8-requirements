@@ -4,10 +4,9 @@ import unittest
 from unittest import mock
 from unittest.mock import mock_open
 
-from pkg_resources import parse_requirements
-
 from flake8_requirements.checker import Flake8Checker
 from flake8_requirements.checker import SetupVisitor
+from flake8_requirements.checker import parse_requirements
 
 
 class SetupTestCase(unittest.TestCase):
@@ -83,12 +82,12 @@ class SetupTestCase(unittest.TestCase):
         }))), "")
         self.assertEqual(setup.redirected, True)
         self.assertEqual(
-            sorted(setup.get_requirements(), key=lambda x: x.project_name),
+            sorted(setup.get_requirements(), key=lambda x: x.name),
             sorted(parse_requirements([
                 "ABC > 1.0.0",
                 "bar.cat > 2, < 3",
                 "extra < 10",
-            ]), key=lambda x: x.project_name),
+            ]), key=lambda x: x.name),
         )
 
     def test_get_setup_cfg_requirements(self):

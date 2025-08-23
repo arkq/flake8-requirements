@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "flake8-requirements"
 # NOTE: Keep in sync with src/flake8_requirements/checker.py file.
-version = "2.2.1"
+version = "2.3.0"
 description = "Package requirements checker, plugin for flake8"
 readme = "README.rst"
 authors = [ { name = "Arkadiusz Bokowy", email = "arkadiusz.bokowy@gmail.com" } ]
-requires-python = ">=3.6"
+requires-python = ">=3.8"
 classifiers = [
     "Framework :: Flake8",
     "Intended Audience :: Developers",
@@ -22,8 +22,8 @@ classifiers = [
 ]
 dependencies = [
     "flake8 >= 4.0.0",
-    "setuptools >= 10.0.0",
     "tomli>=1.2.1; python_version < '3.11'",
+    "packaging >= 20.0",
 ]
 
 [project.optional-dependencies]

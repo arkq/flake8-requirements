@@ -8,8 +8,7 @@ from configparser import ConfigParser
 from functools import wraps
 from logging import getLogger
 
-from pkg_resources import parse_requirements
-from pkg_resources import yield_lines
+from packaging.requirements import Requirement
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -20,7 +19,7 @@ from .modules import KNOWN_3RD_PARTIES
 from .modules import STDLIB_PY3
 
 # NOTE: Keep in sync with pyproject.toml file.
-__version__ = "2.2.1"
+__version__ = "2.3.0"
 __license__ = "MIT"
 
 LOG = getLogger('flake8.plugin.requirements')
@@ -64,6 +63,13 @@ def project2modules(project):
     return modules
 
 
+def filtercomments(lines):
+    """Strip comments and empty lines."""
+    for line in map(lambda x: x.strip(), lines):
+        if line and not line.startswith('#'):
+            yield line
+
+
 def joinlines(lines):
     """Join line continuations and strip comments."""
     joined_line = ""
@@ -79,6 +85,20 @@ def joinlines(lines):
             joined_line = ""
     if joined_line:
         yield joined_line
+
+
+def parse_requirements(lines):
+    """Parse requirement strings into Requirement objects."""
+    for line in lines:
+        # Strip comments from the end of the line
+        line = line.split('#')[0].strip()
+        # Skip empty lines and lines that start with options
+        if not line or line.startswith('-'):
+            continue
+        try:
+            yield Requirement(line)
+        except Exception:
+            continue
 
 
 class ImportVisitor(ast.NodeVisitor):
@@ -242,10 +262,10 @@ class SetupVisitor(ast.NodeVisitor):
                 keywords.add(k.arg)
             # Simple case for dictionary expansion for Python >= 3.5.
             if k.arg is None and isinstance(k.value, ast.Dict):
-                keywords.update(x.s for x in k.value.keys)
+                keywords.update(x.value for x in k.value.keys)
         # Simple case for dictionary expansion for Python <= 3.4.
         if getattr(node, 'kwargs', ()) and isinstance(node.kwargs, ast.Dict):
-            keywords.update(x.s for x in node.kwargs.keys)
+            keywords.update(x.value for x in node.kwargs.keys)
 
         # The bare minimum number of arguments seems to be around five, which
         # includes author, name, version, module/package and something extra.
@@ -417,11 +437,11 @@ class Flake8Checker(object):
                 with open(pkg_info_path) as f:
                     name = next(iter(
                         line.split(":")[1].strip()
-                        for line in yield_lines(f.readlines())
+                        for line in filtercomments(f.readlines())
                         if line.lower().startswith("name:")
                     ), "")
                 with open(modules_path) as f:
-                    modules = list(yield_lines(f.readlines()))
+                    modules = list(filtercomments(f.readlines()))
                 for name in project2modules(name):
                     mapping[name] = modules
         return mapping
@@ -450,9 +470,6 @@ class Flake8Checker(object):
     _requirement_match_option = re.compile(
         r"(-[\w-]+)(.*)").match
 
-    _requirement_match_extras = re.compile(
-        r"(.*?)\s*(\[[^]]+\])").match
-
     _requirement_match_spec = re.compile(
         r"(.*?)\s+--(global-option|install-option|hash)").match
 
@@ -472,10 +489,9 @@ class Flake8Checker(object):
         """Resolves flags like -r in an individual requirement line."""
 
         option = None
-        option_match = cls._requirement_match_option(requirement)
-        if option_match is not None:
-            option = option_match.group(1)
-            requirement = option_match.group(2).lstrip()
+        if match := cls._requirement_match_option(requirement):
+            option = match.group(1)
+            requirement = match.group(2).lstrip()
 
         editable = False
         if option in ("-e", "--editable"):
@@ -504,19 +520,15 @@ class Flake8Checker(object):
             return []
 
         # Check for a requirement given as a VCS link.
-        vcs_match = cls._requirement_match_vcs(requirement)
-        vcs_spec_match = cls._requirement_match_vcs_spec(
-            vcs_match.group(2) if vcs_match is not None else "")
-        if vcs_spec_match is not None:
-            return [vcs_spec_match.group(1)]
+        if match := cls._requirement_match_vcs(requirement):
+            if match := cls._requirement_match_vcs_spec(match.group(2)):
+                return [match.group(1)]
 
         # Check for a requirement given as a local archive file.
-        archive_ext_match = cls._requirement_match_archive(requirement)
-        if archive_ext_match is not None:
-            base = os.path.basename(archive_ext_match.group(1))
-            archive_spec_match = cls._requirement_match_archive_spec(base)
-            if archive_spec_match is not None:
-                name, version = archive_spec_match.groups()
+        if match := cls._requirement_match_archive(requirement):
+            base = os.path.basename(match.group(1))
+            if match := cls._requirement_match_archive_spec(base):
+                name, version = match.groups()
                 return [
                     name if not version else
                     "{} == {}".format(name, version[1:])
@@ -529,16 +541,10 @@ class Flake8Checker(object):
             requirement = os.path.basename(requirement)
             if requirement.split()[0] == ".":
                 requirement = ""
-            # It seems that the parse_requirements() function does not like
-            # ".[foo,bar]" syntax (current directory with extras).
-            extras_match = cls._requirement_match_extras(requirement)
-            if extras_match is not None and extras_match.group(1) == ".":
-                requirement = ""
 
         # Extract requirement specifier (skip in-line options).
-        spec_match = cls._requirement_match_spec(requirement)
-        if spec_match is not None:
-            requirement = spec_match.group(1)
+        if match := cls._requirement_match_spec(requirement):
+            requirement = match.group(1)
 
         return [requirement.strip()]
 
@@ -582,7 +588,7 @@ class Flake8Checker(object):
         for file_path in files_to_parse:
             try:
                 with open(file_path, 'r') as file:
-                    requirements.extend(parse_requirements(file))
+                    requirements.extend(parse_requirements(file.readlines()))
             except IOError as e:
                 LOG.debug("Couldn't open requirements file: %s", e)
         return requirements
@@ -656,15 +662,16 @@ class Flake8Checker(object):
         """Try to load standard configuration file requirements."""
         config = cls.get_setup_cfg()
         requirements = []
-        requirements.extend(parse_requirements(
-            config.get('options', 'install_requires')))
-        requirements.extend(parse_requirements(
-            config.get('options', 'tests_require')))
+        if requires := config.get('options', 'install_requires'):
+            requirements.extend(parse_requirements(requires.splitlines()))
+        if requires := config.get('options', 'tests_require'):
+            requirements.extend(parse_requirements(requires.splitlines()))
         for _, r in config.items('options.extras_require'):
-            requirements.extend(parse_requirements(r))
-        setup_requires = config.get('options', 'setup_requires')
-        if setup_requires and is_setup_py:
-            requirements.extend(parse_requirements(setup_requires))
+            if r:
+                requirements.extend(parse_requirements(r.splitlines()))
+        if is_setup_py:
+            if requires := config.get('options', 'setup_requires'):
+                requirements.extend(parse_requirements(requires.splitlines()))
         return requirements
 
     @classmethod
@@ -715,7 +722,7 @@ class Flake8Checker(object):
         mods_3rd_party = ModuleSet()
         # Get 3rd party module names based on requirements.
         for requirement in cls.get_mods_3rd_party_requirements(is_setup_py):
-            modules = project2modules(requirement.project_name)
+            modules = project2modules(requirement.name)
             # Use known module mappings to correct auto-detected module name.
             if modules[0] in cls.known_modules:
                 modules = cls.known_modules[modules[0]]
