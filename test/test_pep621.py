@@ -139,9 +139,9 @@ class Pep621TestCase(unittest.TestCase):
                     ).return_value,
                 ]
                 result = Flake8Checker.get_setuptools_dynamic_requirements()
-                expected = list(parse_requirements(requirements_content))
+                expected = list(parse_requirements(requirements_content.splitlines()))
                 expected += list(
-                    parse_requirements(optional_requirements_content)
+                    parse_requirements(optional_requirements_content.splitlines())
                 )
 
                 self.assertEqual(len(result), len(expected))

@@ -63,104 +63,32 @@ def project2modules(project):
     return modules
 
 
-def yield_lines(iterable):
-    """Yield valid lines of a string or iterable.
+def yield_lines(lines):
+    """Strip comments and empty lines from list of strings.
     
-    This is a replacement for pkg_resources.yield_lines that:
-    - Flattens iterables of strings
-    - Splits strings by newlines
-    - Strips empty lines and lines starting with #
-    - Strips whitespace from lines
+    Args:
+        lines: list of strings
+        
+    Yields:
+        str: lines with comments and empty lines removed
     """
-    if isinstance(iterable, str):
-        lines = iterable.splitlines()
-    else:
-        lines = []
-        for item in iterable:
-            if isinstance(item, str):
-                lines.extend(item.splitlines())
-            else:
-                lines.append(str(item))
-    
     for line in lines:
         line = line.strip()
         if line and not line.startswith('#'):
             yield line
 
 
-class LegacyRequirement:
-    """Wrapper for packaging.requirements.Requirement to maintain pkg_resources API compatibility."""
-    
-    def __init__(self, requirement_string):
-        self._req = Requirement(requirement_string)
-        self._requirement_string = requirement_string
-    
-    @property
-    def project_name(self):
-        """Compatibility property for the old API."""
-        return self._req.name
-    
-    @property
-    def name(self):
-        return self._req.name
-    
-    @property
-    def specs(self):
-        """Convert specifier to old-style specs format."""
-        specs = []
-        if self._req.specifier:
-            for spec in self._req.specifier:
-                specs.append((spec.operator, spec.version))
-        return specs
-    
-    @property
-    def specifier(self):
-        return self._req.specifier
-    
-    @property
-    def extras(self):
-        # Convert set to tuple for compatibility
-        return tuple(self._req.extras)
-    
-    @property
-    def marker(self):
-        return self._req.marker
-    
-    @property
-    def url(self):
-        return self._req.url
-    
-    def __str__(self):
-        return str(self._req)
-    
-    def __repr__(self):
-        # Match the old repr format for compatibility
-        return f"Requirement.parse('{self._requirement_string}')"
-    
-    def __eq__(self, other):
-        if isinstance(other, LegacyRequirement):
-            return str(self._req) == str(other._req)
-        return str(self._req) == str(other)
-    
-    def __hash__(self):
-        return hash(str(self._req))
-
 
 def parse_requirements(lines):
     """Parse requirement strings into Requirement objects.
     
-    This is a replacement for pkg_resources.parse_requirements that
-    uses packaging.requirements.Requirement but maintains API compatibility.
+    Args:
+        lines: list of requirement strings
+        
+    Yields:
+        packaging.requirements.Requirement: parsed requirement objects
     """
-    if hasattr(lines, 'read'):
-        # File-like object
-        content = lines.read()
-        lines = content.splitlines()
-    elif isinstance(lines, str):
-        lines = lines.splitlines()
-    
     for line in lines:
-        # Process each line - don't use yield_lines here as it's already been processed
         if isinstance(line, str):
             # Strip comments from the end of the line
             line = line.split('#')[0].strip()
@@ -168,7 +96,7 @@ def parse_requirements(lines):
             if not line or line.startswith('-'):
                 continue
             try:
-                yield LegacyRequirement(line)
+                yield Requirement(line)
             except Exception:
                 # Skip invalid requirement lines
                 continue
@@ -322,20 +250,21 @@ class SetupVisitor(ast.NodeVisitor):
         """Get package requirements."""
         requires = []
         if install:
-            requires.extend(parse_requirements(
-                self.keywords.get('install_requires', ()),
-            ))
+            install_requires = self.keywords.get('install_requires', ())
+            if install_requires:
+                requires.extend(parse_requirements(list(install_requires)))
         if extras:
             for r in self.keywords.get('extras_require', {}).values():
-                requires.extend(parse_requirements(r))
+                if r:
+                    requires.extend(parse_requirements(list(r)))
         if setup:
-            requires.extend(parse_requirements(
-                self.keywords.get('setup_requires', ()),
-            ))
+            setup_requires = self.keywords.get('setup_requires', ())
+            if setup_requires:
+                requires.extend(parse_requirements(list(setup_requires)))
         if tests:
-            requires.extend(parse_requirements(
-                self.keywords.get('tests_require', ()),
-            ))
+            tests_require = self.keywords.get('tests_require', ())
+            if tests_require:
+                requires.extend(parse_requirements(list(tests_require)))
         return requires
 
     def visit_Call(self, node):
@@ -692,7 +621,7 @@ class Flake8Checker(object):
         for file_path in files_to_parse:
             try:
                 with open(file_path, 'r') as file:
-                    requirements.extend(parse_requirements(file))
+                    requirements.extend(parse_requirements(file.readlines()))
             except IOError as e:
                 LOG.debug("Couldn't open requirements file: %s", e)
         return requirements
@@ -702,10 +631,12 @@ class Flake8Checker(object):
         """Try to get PEP 621 metadata requirements."""
         pep621 = cls.get_pyproject_toml_pep621()
         requirements = []
-        requirements.extend(parse_requirements(
-            pep621.get("dependencies", ())))
+        dependencies = pep621.get("dependencies", ())
+        if dependencies:
+            requirements.extend(parse_requirements(list(dependencies)))
         for r in pep621.get("optional-dependencies", {}).values():
-            requirements.extend(parse_requirements(r))
+            if r:
+                requirements.extend(parse_requirements(list(r)))
         if len(requirements) == 0:
             requirements = cls.get_setuptools_dynamic_requirements()
         return requirements
@@ -721,14 +652,17 @@ class Flake8Checker(object):
         """Try to get poetry configuration requirements."""
         poetry = cls.get_pyproject_toml_poetry()
         requirements = []
-        requirements.extend(parse_requirements(
-            poetry.get('dependencies', ())))
-        requirements.extend(parse_requirements(
-            poetry.get('dev-dependencies', ())))
+        dependencies = poetry.get('dependencies', ())
+        if dependencies:
+            requirements.extend(parse_requirements(list(dependencies)))
+        dev_dependencies = poetry.get('dev-dependencies', ())
+        if dev_dependencies:
+            requirements.extend(parse_requirements(list(dev_dependencies)))
         # Collect dependencies from groups (since poetry-1.2).
         for _, group in poetry.get('group', {}).items():
-            requirements.extend(parse_requirements(
-                group.get('dependencies', ())))
+            group_dependencies = group.get('dependencies', ())
+            if group_dependencies:
+                requirements.extend(parse_requirements(list(group_dependencies)))
         return requirements
 
     @classmethod
@@ -738,8 +672,9 @@ class Flake8Checker(object):
         if not os.path.isabs(path):
             path = os.path.join(cls.root_dir, path)
         try:
-            return tuple(parse_requirements(cls.resolve_requirement(
-                "-r {}".format(path), cls.requirements_max_depth + 1)))
+            resolved_reqs = cls.resolve_requirement(
+                "-r {}".format(path), cls.requirements_max_depth + 1)
+            return tuple(parse_requirements(resolved_reqs))
         except IOError as e:
             LOG.error("Couldn't load requirements: %s", e)
             return ()
@@ -766,15 +701,18 @@ class Flake8Checker(object):
         """Try to load standard configuration file requirements."""
         config = cls.get_setup_cfg()
         requirements = []
-        requirements.extend(parse_requirements(
-            config.get('options', 'install_requires')))
-        requirements.extend(parse_requirements(
-            config.get('options', 'tests_require')))
+        install_requires = config.get('options', 'install_requires')
+        if install_requires:
+            requirements.extend(parse_requirements(install_requires.splitlines()))
+        tests_require = config.get('options', 'tests_require')
+        if tests_require:
+            requirements.extend(parse_requirements(tests_require.splitlines()))
         for _, r in config.items('options.extras_require'):
-            requirements.extend(parse_requirements(r))
+            if r:
+                requirements.extend(parse_requirements(r.splitlines()))
         setup_requires = config.get('options', 'setup_requires')
         if setup_requires and is_setup_py:
-            requirements.extend(parse_requirements(setup_requires))
+            requirements.extend(parse_requirements(setup_requires.splitlines()))
         return requirements
 
     @classmethod
@@ -825,7 +763,7 @@ class Flake8Checker(object):
         mods_3rd_party = ModuleSet()
         # Get 3rd party module names based on requirements.
         for requirement in cls.get_mods_3rd_party_requirements(is_setup_py):
-            modules = project2modules(requirement.project_name)
+            modules = project2modules(requirement.name)
             # Use known module mappings to correct auto-detected module name.
             if modules[0] in cls.known_modules:
                 modules = cls.known_modules[modules[0]]
