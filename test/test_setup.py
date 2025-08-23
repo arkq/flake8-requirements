@@ -4,7 +4,7 @@ import unittest
 from unittest import mock
 from unittest.mock import mock_open
 
-from pkg_resources import parse_requirements
+from flake8_requirements.checker import parse_requirements
 
 from flake8_requirements.checker import Flake8Checker
 from flake8_requirements.checker import SetupVisitor

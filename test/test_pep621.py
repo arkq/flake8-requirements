@@ -3,7 +3,7 @@ from unittest import mock
 from unittest.mock import mock_open
 from unittest.mock import patch
 
-from pkg_resources import parse_requirements
+from flake8_requirements.checker import parse_requirements
 
 from flake8_requirements.checker import Flake8Checker
 from flake8_requirements.checker import ModuleSet

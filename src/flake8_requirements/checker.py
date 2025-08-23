@@ -8,8 +8,7 @@ from configparser import ConfigParser
 from functools import wraps
 from logging import getLogger
 
-from pkg_resources import parse_requirements
-from pkg_resources import yield_lines
+from packaging.requirements import Requirement
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -62,6 +61,117 @@ def project2modules(project):
         # Remove conventional "python-" prefix.
         modules.append(modules[0][7:])
     return modules
+
+
+def yield_lines(iterable):
+    """Yield valid lines of a string or iterable.
+    
+    This is a replacement for pkg_resources.yield_lines that:
+    - Flattens iterables of strings
+    - Splits strings by newlines
+    - Strips empty lines and lines starting with #
+    - Strips whitespace from lines
+    """
+    if isinstance(iterable, str):
+        lines = iterable.splitlines()
+    else:
+        lines = []
+        for item in iterable:
+            if isinstance(item, str):
+                lines.extend(item.splitlines())
+            else:
+                lines.append(str(item))
+    
+    for line in lines:
+        line = line.strip()
+        if line and not line.startswith('#'):
+            yield line
+
+
+class LegacyRequirement:
+    """Wrapper for packaging.requirements.Requirement to maintain pkg_resources API compatibility."""
+    
+    def __init__(self, requirement_string):
+        self._req = Requirement(requirement_string)
+        self._requirement_string = requirement_string
+    
+    @property
+    def project_name(self):
+        """Compatibility property for the old API."""
+        return self._req.name
+    
+    @property
+    def name(self):
+        return self._req.name
+    
+    @property
+    def specs(self):
+        """Convert specifier to old-style specs format."""
+        specs = []
+        if self._req.specifier:
+            for spec in self._req.specifier:
+                specs.append((spec.operator, spec.version))
+        return specs
+    
+    @property
+    def specifier(self):
+        return self._req.specifier
+    
+    @property
+    def extras(self):
+        # Convert set to tuple for compatibility
+        return tuple(self._req.extras)
+    
+    @property
+    def marker(self):
+        return self._req.marker
+    
+    @property
+    def url(self):
+        return self._req.url
+    
+    def __str__(self):
+        return str(self._req)
+    
+    def __repr__(self):
+        # Match the old repr format for compatibility
+        return f"Requirement.parse('{self._requirement_string}')"
+    
+    def __eq__(self, other):
+        if isinstance(other, LegacyRequirement):
+            return str(self._req) == str(other._req)
+        return str(self._req) == str(other)
+    
+    def __hash__(self):
+        return hash(str(self._req))
+
+
+def parse_requirements(lines):
+    """Parse requirement strings into Requirement objects.
+    
+    This is a replacement for pkg_resources.parse_requirements that
+    uses packaging.requirements.Requirement but maintains API compatibility.
+    """
+    if hasattr(lines, 'read'):
+        # File-like object
+        content = lines.read()
+        lines = content.splitlines()
+    elif isinstance(lines, str):
+        lines = lines.splitlines()
+    
+    for line in lines:
+        # Process each line - don't use yield_lines here as it's already been processed
+        if isinstance(line, str):
+            # Strip comments from the end of the line
+            line = line.split('#')[0].strip()
+            # Skip empty lines and lines that start with options
+            if not line or line.startswith('-'):
+                continue
+            try:
+                yield LegacyRequirement(line)
+            except Exception:
+                # Skip invalid requirement lines
+                continue
 
 
 def joinlines(lines):
